@@ -178,14 +178,19 @@ button {
 .meal-entry__action-strip {
   margin-left: auto;
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
 .meal-entry__edit,
 .meal-entry__delete {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 800;
-  color: var(--text-soft);
+  color: var(--green-strong);
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: transparent;
 }
 
 .meal-entry__delete {
@@ -780,6 +785,112 @@ button {
 .progress-card__empty {
   color: var(--text-soft);
   font-size: 12px;
+}
+
+.screen-progreso {
+  gap: 14px;
+}
+
+.progress-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.progress-card {
+  padding: 14px;
+}
+
+.progress-card__value {
+  display: block;
+  color: var(--green-strong);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.progress-card__delta {
+  display: block;
+  color: var(--text-soft);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.progress-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.progress-history {
+  background: var(--panel);
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  padding: 12px;
+}
+
+.progress-history__list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.progress-history__row {
+  display: grid;
+  grid-template-columns: 84px 76px 76px auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--sage-light);
+  border-radius: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+}
+
+.progress-history__date,
+.progress-history__value {
+  color: var(--text-soft);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.progress-history__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 58px;
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  color: var(--green-strong);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+
+.icon-button--danger {
+  color: var(--text-muted);
+}
+
+.food-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.food-modal__label {
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.error-text {
+  color: var(--text-soft);
+  font-size: 11px;
 }
 
 .food-panel {

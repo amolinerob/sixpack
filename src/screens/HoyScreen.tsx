@@ -298,11 +298,11 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
                         <span className="meal-entry__food">{food.name}</span>
                         <span className="meal-entry__meta"> · {round(entry.quantityGrams)} g · {round(entry.kcal)} kcal</span>
                         <span className="meal-entry__action-strip">
-                          <span className="meal-entry__edit">Editar</span>
-                          <span className="meal-entry__delete" onClick={(clickEvent) => {
+                          <span className="meal-entry__edit" aria-label="Editar alimento" title="Editar">✎</span>
+                          <span className="meal-entry__delete" aria-label="Eliminar alimento" title="Eliminar" onClick={(clickEvent) => {
                             clickEvent.stopPropagation()
                             deleteEntry(entry.id)
-                          }}>Eliminar</span>
+                          }}>🗑</span>
                         </span>
                       </button>
                     )

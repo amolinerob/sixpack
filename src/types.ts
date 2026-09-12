@@ -47,6 +47,15 @@ export type DiaryDraft = {
   date: string
 }
 
+export type BodyMeasurement = {
+  id: string
+  userId: string
+  date: string
+  weightKg?: number
+  waistCm?: number
+  createdAt: string
+}
+
 export type UserProfile = {
   id: string
   name: string

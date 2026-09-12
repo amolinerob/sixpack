@@ -1,4 +1,4 @@
-import type { ActivityEntry, FoodDiaryEntry, User } from './types'
+import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, User } from './types'
 import { USERS } from './types'
 
 const ACTIVE_USER_KEY = 'sixpack.active.user.v1'
@@ -14,6 +14,10 @@ export function getEntriesStorageKey(userId: string) {
 
 export function getActivitiesStorageKey(userId: string) {
   return `sixpack.activities.entries.v1.${userId}`
+}
+
+export function getBodyMeasurementsStorageKey(userId: string) {
+  return `sixpack.body.measurements.v1.${userId}`
 }
 
 export function getUserById(userId: string | null | undefined): User | undefined {
@@ -78,6 +82,23 @@ export function loadActivities(userId: string): ActivityEntry[] {
 
 export function saveActivities(userId: string, activities: ActivityEntry[]) {
   localStorage.setItem(getActivitiesStorageKey(userId), JSON.stringify(activities))
+}
+
+export function loadBodyMeasurements(userId: string): BodyMeasurement[] {
+  const raw = localStorage.getItem(getBodyMeasurementsStorageKey(userId))
+  if (!raw) {
+    return []
+  }
+
+  try {
+    return JSON.parse(raw) as BodyMeasurement[]
+  } catch {
+    return []
+  }
+}
+
+export function saveBodyMeasurements(userId: string, measurements: BodyMeasurement[]) {
+  localStorage.setItem(getBodyMeasurementsStorageKey(userId), JSON.stringify(measurements))
 }
 
 export function migrateLegacyDataToAngel() {

@@ -63,7 +63,7 @@ function App() {
           <>
             {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} />}
             {activeScreen === 'alimentos' && <AlimentosScreen />}
-            {activeScreen === 'progreso' && <ProgresoScreen />}
+            {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} />}
           </>
         )}
       </main>
