@@ -73,7 +73,6 @@ export function HoyScreen() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
   const [searchName, setSearchName] = useState('')
-  const [searchBrand, setSearchBrand] = useState('')
   const [selectedFoodId, setSelectedFoodId] = useState(foods[0]?.id ?? '')
   const [quantityGrams, setQuantityGrams] = useState<number>(
     getServingGramsInitial(getFoodById(foods[0]?.id ?? '')) ?? 100,
@@ -123,7 +122,6 @@ export function HoyScreen() {
     setSelectedFoodId(food.id)
     setQuantityGrams(firstQuantity ?? 100)
     setSearchName('')
-    setSearchBrand('')
     setEditingId(null)
     setSelectorOpen(true)
   }
@@ -140,7 +138,6 @@ export function HoyScreen() {
   function closeSelector() {
     setSelectorOpen(false)
     setSearchName('')
-    setSearchBrand('')
   }
 
   function syncQuantityToSelectedFood(foodId: string, fallbackQuantity = 100) {
@@ -270,7 +267,7 @@ export function HoyScreen() {
   }
 
   const visibleFoods = foods.filter((food) => {
-    return food.name.toLowerCase().includes(searchName.toLowerCase()) && food.brand.toLowerCase().includes(searchBrand.toLowerCase())
+    return food.name.toLowerCase().includes(searchName.toLowerCase())
   })
 
   return (
@@ -442,10 +439,6 @@ export function HoyScreen() {
               <div className="search-box">
                 <span className="search-icon">⌕</span>
                 <input value={searchName} onChange={(event) => setSearchName(event.target.value)} placeholder="Buscar por nombre" aria-label="Buscar por nombre" />
-              </div>
-              <div className="search-box">
-                <span className="search-icon">⌕</span>
-                <input value={searchBrand} onChange={(event) => setSearchBrand(event.target.value)} placeholder="Buscar por marca" aria-label="Buscar por marca" />
               </div>
             </div>
 
