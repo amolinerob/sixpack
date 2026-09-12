@@ -3,16 +3,13 @@ import { foods } from '../data/foods'
 
 export function AlimentosScreen() {
   const [searchName, setSearchName] = useState('')
-  const [searchBrand, setSearchBrand] = useState('')
   const [selectedFoodId, setSelectedFoodId] = useState(foods[0]?.id ?? '')
 
   const filteredFoods = useMemo(() => {
     return foods.filter((food) => {
-      const matchesName = food.name.toLowerCase().includes(searchName.toLowerCase())
-      const matchesBrand = food.brand.toLowerCase().includes(searchBrand.toLowerCase())
-      return matchesName && matchesBrand
+      return food.name.toLowerCase().includes(searchName.toLowerCase())
     })
-  }, [searchName, searchBrand])
+  }, [searchName])
 
   const selectedFood =
     foods.find((food) => food.id === selectedFoodId) ?? filteredFoods[0] ?? foods[0]
@@ -20,10 +17,7 @@ export function AlimentosScreen() {
   return (
     <section className="screen screen-alimentos">
       <section className="app-header app-header--simple">
-        <div>
-          <span className="app-kicker">Alimentos</span>
-          <h1 className="app-title">Alimentos</h1>
-        </div>
+        <span className="app-kicker">Alimentos</span>
       </section>
 
       <section className="food-panel">
@@ -36,17 +30,6 @@ export function AlimentosScreen() {
               onChange={(event) => setSearchName(event.target.value)}
               placeholder="Buscar por nombre"
               aria-label="Buscar por nombre"
-            />
-          </div>
-
-          <div className="search-box">
-            <span className="search-icon">⌕</span>
-            <input
-              type="search"
-              value={searchBrand}
-              onChange={(event) => setSearchBrand(event.target.value)}
-              placeholder="Buscar por marca"
-              aria-label="Buscar por marca"
             />
           </div>
         </section>
@@ -77,8 +60,7 @@ export function AlimentosScreen() {
                   onClick={() => setSelectedFoodId(food.id)}
                 >
                   <span className="food-row__name">{food.name}</span>
-                  <span className="food-row__brand">{food.brand}</span>
-                  <span className="food-row__serving">{food.servingHabitual}</span>
+                  {food.brand && <span className="food-row__brand">{food.brand}</span>}
                 </button>
               ))}
             </div>

@@ -275,11 +275,7 @@ export function HoyScreen() {
 
   return (
     <section className="screen screen-hoy">
-      <section className="app-header">
-        <div>
-          <span className="app-kicker">Six Pack</span>
-          <h1 className="app-title">Six Pack</h1>
-        </div>
+      <section className="app-header app-header--today">
         <div className="date-nav">
           <button className="date-nav__chevron" onClick={() => setSelectedDate(dateOffset(selectedDate, -1))}>‹</button>
           <span className="today-date">{formatDisplayDate(selectedDate)}</span>
@@ -311,7 +307,7 @@ export function HoyScreen() {
 
       <section className="meal-card">
         <div className="section-title">
-          <span className="section-title__text">Plan del día</span>
+          <span className="section-title__text">Comidas del día</span>
         </div>
 
         <div className="meal-list">
