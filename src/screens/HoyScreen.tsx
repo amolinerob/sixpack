@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { foods } from '../data/foods'
-import { loadActivities, loadEntries, saveActivities, saveEntries } from '../storage'
-import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type MealName, type User } from '../types'
+import type { FoodItem } from '../data/foods'
+import { getCombinedFoods, loadActivities, loadEntries, loadSharedMeals, saveActivities, saveEntries } from '../storage'
+import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User } from '../types'
+
+const foods = getCombinedFoods()
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -16,7 +18,7 @@ function dateOffset(dateKey: string, days: number) {
   return todayIsoLocal(date)
 }
 
-function getServingGramsInitial(food: (typeof foods)[number]) {
+function getServingGramsInitial(food: FoodItem) {
   if (food.servingUnit === 'g' && food.servingGrams !== null) {
     return food.servingGrams
   }
@@ -28,7 +30,39 @@ function getFoodById(foodId: string) {
   return foods.find((food) => food.id === foodId) ?? foods[0]
 }
 
+function mealNutrition(ingredients: MealIngredient[], availableFoods: FoodItem[]) {
+  return ingredients.reduce((total, ingredient) => {
+    const food = availableFoods.find((item) => item.id === ingredient.foodId)
+    if (!food) return total
+    const grams = ingredient.unit === 'unidad' ? ingredient.quantity * (food.servingGrams ?? 0) : ingredient.quantity
+    const factor = grams / 100
+    return {
+      kcal: total.kcal + food.kcal100g * factor,
+      protein: total.protein + food.protein100g * factor,
+      carbs: total.carbs + food.carbs100g * factor,
+      fat: total.fat + food.fat100g * factor,
+    }
+  }, { kcal: 0, protein: 0, carbs: 0, fat: 0 })
+}
+
+function createMealSnapshot(meal: Meal): MealDiarySnapshot {
+  const nutrition = mealNutrition(meal.ingredients, foods)
+  return {
+    mealId: meal.id,
+    name: meal.name,
+    ingredients: meal.ingredients.map((ingredient) => ({
+      ...ingredient,
+      foodName: foods.find((food) => food.id === ingredient.foodId)?.name ?? 'Alimento no disponible',
+    })),
+    kcal: round(nutrition.kcal),
+    protein: round(nutrition.protein),
+    carbs: round(nutrition.carbs),
+    fat: round(nutrition.fat),
+  }
+}
+
 export function HoyScreen({ activeUser }: { activeUser: User }) {
+  const [sharedMeals] = useState<Meal[]>(() => loadSharedMeals())
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
   const [entries, setEntries] = useState<FoodDiaryEntry[]>(() => loadEntries(activeUser.id))
   const [activities, setActivities] = useState<ActivityEntry[]>(() => loadActivities(activeUser.id))
@@ -38,6 +72,8 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
   const [searchName, setSearchName] = useState('')
   const [selectedFoodId, setSelectedFoodId] = useState(foods[0]?.id ?? '')
+  const [selectedMealId, setSelectedMealId] = useState(() => loadSharedMeals()[0]?.id ?? '')
+  const [entryKind, setEntryKind] = useState<'food' | 'meal'>('food')
   const [quantityGrams, setQuantityGrams] = useState<number>(
     getServingGramsInitial(getFoodById(foods[0]?.id ?? '')) ?? 100,
   )
@@ -55,6 +91,11 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
   const selectedFood = useMemo(
     () => foods.find((food) => food.id === selectedFoodId) ?? foods[0],
     [selectedFoodId],
+  )
+
+  const selectedSharedMeal = useMemo(
+    () => sharedMeals.find((meal) => meal.id === selectedMealId) ?? sharedMeals[0],
+    [selectedMealId, sharedMeals],
   )
 
   const dateEntries = useMemo(
@@ -88,7 +129,9 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
     const food = foods[0]
     const firstQuantity = getServingGramsInitial(food)
     setDraftMeal(meal)
+    setEntryKind('food')
     setSelectedFoodId(food.id)
+    setSelectedMealId(sharedMeals[0]?.id ?? '')
     setQuantityGrams(firstQuantity ?? 100)
     setSearchName('')
     setEditingId(null)
@@ -96,11 +139,17 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
   }
 
   function openEditor(entry: FoodDiaryEntry) {
-    const food = getFoodById(entry.foodId)
     setEditingId(entry.id)
     setDraftMeal(entry.meal)
-    setSelectedFoodId(food.id)
-    setQuantityGrams(entry.quantityGrams)
+    if (entry.entryType === 'meal' && entry.mealSnapshot) {
+      setEntryKind('meal')
+      setSelectedMealId(entry.mealSnapshot.mealId)
+    } else {
+      const food = getFoodById(entry.foodId ?? '')
+      setEntryKind('food')
+      setSelectedFoodId(food.id)
+      setQuantityGrams(entry.quantityGrams)
+    }
     setSelectorOpen(true)
   }
 
@@ -117,6 +166,42 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
   }
 
   function confirmEntry() {
+    if (entryKind === 'meal') {
+      if (!selectedSharedMeal) return
+      const snapshot = createMealSnapshot(selectedSharedMeal)
+      const mealValues = {
+        entryType: 'meal' as const,
+        foodId: undefined,
+        quantityGrams: 1,
+        quantityUnit: 'comida',
+        meal: draftMeal,
+        kcal: snapshot.kcal,
+        protein: snapshot.protein,
+        carbs: snapshot.carbs,
+        fat: snapshot.fat,
+        mealSnapshot: snapshot,
+      }
+
+      if (editingId) {
+        const next = entries.map((entry) => entry.id === editingId ? { ...entry, ...mealValues } : entry)
+        setEntries(next)
+        saveEntries(activeUser.id, next)
+      } else {
+        const next: FoodDiaryEntry = {
+          id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
+          date: selectedDate,
+          createdAt: new Date().toISOString(),
+          ...mealValues,
+        }
+        const nextEntries = [...entries, next]
+        setEntries(nextEntries)
+        saveEntries(activeUser.id, nextEntries)
+      }
+
+      closeSelector()
+      return
+    }
+
     const food = getFoodById(selectedFoodId)
     const quantity = Math.max(0, quantityGrams)
     const kcal = (food.kcal100g / 100) * quantity
@@ -130,13 +215,14 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
         return
       }
 
-      const next = entries.map((entry) => {
+      const next: FoodDiaryEntry[] = entries.map((entry) => {
         if (entry.id !== editingId) {
           return entry
         }
 
         return {
           ...entry,
+          entryType: 'food' as const,
           foodId: food.id,
           meal: draftMeal,
           quantityGrams: quantity,
@@ -145,6 +231,7 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
           protein: round(protein),
           carbs: round(carbs),
           fat: round(fat),
+          mealSnapshot: undefined,
         }
       })
 
@@ -153,6 +240,7 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
     } else {
       const next: FoodDiaryEntry = {
         id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
+        entryType: 'food',
         foodId: food.id,
         date: selectedDate,
         meal: draftMeal,
@@ -292,11 +380,19 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
                 <div className="meal-row__entries">
                   {mealEntries.length === 0 && <span className="meal-row__empty">Sin alimentos</span>}
                   {mealEntries.map((entry) => {
-                    const food = getFoodById(entry.foodId)
+                    const mealSnapshot = entry.entryType === 'meal' ? entry.mealSnapshot : undefined
+                    const isMealEntry = mealSnapshot !== undefined
+                    const food = isMealEntry ? undefined : getFoodById(entry.foodId ?? '')
                     return (
                       <button className="meal-entry" key={entry.id} type="button" onClick={() => openEditor(entry)}>
-                        <span className="meal-entry__food">{food.name}</span>
-                        <span className="meal-entry__meta"> · {round(entry.quantityGrams)} g · {round(entry.kcal)} kcal</span>
+                        <span className="meal-entry__food">
+                          {mealSnapshot ? <><span className="meal-entry__kind">Comida</span>{mealSnapshot.name}</> : food?.name}
+                        </span>
+                        <span className="meal-entry__meta">
+                          {isMealEntry
+                            ? ` · ${round(entry.kcal)} kcal · P ${round(entry.protein)} g · H ${round(entry.carbs)} g · G ${round(entry.fat)} g`
+                            : ` · ${round(entry.quantityGrams)} g · ${round(entry.kcal)} kcal`}
+                        </span>
                         <span className="meal-entry__action-strip">
                           <span className="meal-entry__edit" aria-label="Editar alimento" title="Editar">✎</span>
                           <span className="meal-entry__delete" aria-label="Eliminar alimento" title="Eliminar" onClick={(clickEvent) => {
@@ -404,6 +500,12 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
               <button className="food-modal__close" onClick={closeSelector}>×</button>
             </div>
 
+            <div className="entry-kind-selector" role="group" aria-label="Tipo de registro">
+              <button className={`entry-kind-selector__button ${entryKind === 'food' ? 'is-selected' : ''}`} type="button" onClick={() => setEntryKind('food')}>Alimento</button>
+              <button className={`entry-kind-selector__button ${entryKind === 'meal' ? 'is-selected' : ''}`} type="button" onClick={() => setEntryKind('meal')}>Comida</button>
+            </div>
+
+            {entryKind === 'food' && <>
             <div className="food-modal__search">
               <div className="search-box">
                 <span className="search-icon">⌕</span>
@@ -510,6 +612,41 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
                 </div>
               </div>
             </div>
+            </>}
+
+            {entryKind === 'meal' && <div className="food-modal__layout">
+              <div className="food-modal__list">
+                {sharedMeals.length === 0 && <span className="meal-row__empty">No hay comidas creadas.</span>}
+                {sharedMeals.map((meal) => (
+                  <button key={meal.id} className={`food-modal__row ${meal.id === selectedSharedMeal?.id ? 'is-selected' : ''}`} onClick={() => setSelectedMealId(meal.id)}>
+                    <span className="food-modal__name">{meal.name}</span>
+                    <span className="food-modal__serving">{meal.ingredients.length} ingredientes</span>
+                  </button>
+                ))}
+              </div>
+
+              {selectedSharedMeal && <div className="food-modal__detail">
+                <span className="food-detail-panel__category">Comida</span>
+                <div className="food-detail__head">
+                  <div>
+                    <span className="food-detail__name">{selectedSharedMeal.name}</span>
+                    {selectedSharedMeal.description && <span className="food-detail__brand">{selectedSharedMeal.description}</span>}
+                  </div>
+                </div>
+                <div className="food-macro-table">
+                  <div className="food-macro-table__row food-macro-table__row--head"><span>Ingredientes</span><span>{selectedSharedMeal.ingredients.length}</span></div>
+                  <div className="food-macro-table__row"><span>Kcal</span><span>{createMealSnapshot(selectedSharedMeal).kcal} kcal</span></div>
+                  <div className="food-macro-table__row"><span>Proteína</span><span>{createMealSnapshot(selectedSharedMeal).protein} g</span></div>
+                  <div className="food-macro-table__row"><span>Hidratos</span><span>{createMealSnapshot(selectedSharedMeal).carbs} g</span></div>
+                  <div className="food-macro-table__row"><span>Grasa</span><span>{createMealSnapshot(selectedSharedMeal).fat} g</span></div>
+                </div>
+                <div className="food-modal__choice">
+                  <label className="food-modal__label">Añadir a</label>
+                  <select value={draftMeal} onChange={(event) => setDraftMeal(event.target.value as MealName)}>{MEALS.map((meal) => <option key={meal} value={meal}>{meal}</option>)}</select>
+                </div>
+                <div className="food-modal__confirm"><button className="secondary-button" onClick={closeSelector}>Cancelar</button><button className="primary-button" onClick={confirmEntry}>Confirmar</button></div>
+              </div>}
+            </div>}
           </div>
         </div>
       )}

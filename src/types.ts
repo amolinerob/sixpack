@@ -1,4 +1,4 @@
-export type Screen = 'hoy' | 'alimentos' | 'progreso'
+export type Screen = 'hoy' | 'alimentos' | 'comidas' | 'progreso'
 
 export type User = {
   id: string
@@ -18,7 +18,8 @@ export type ActivityType = (typeof ACTIVITY_TYPES)[number]
 
 export type FoodDiaryEntry = {
   id: string
-  foodId: string
+  entryType?: 'food' | 'meal'
+  foodId?: string
   date: string
   meal: MealName
   quantityGrams: number
@@ -28,6 +29,21 @@ export type FoodDiaryEntry = {
   carbs: number
   fat: number
   createdAt: string
+  mealSnapshot?: MealDiarySnapshot
+}
+
+export type MealDiarySnapshot = {
+  mealId: string
+  name: string
+  ingredients: MealDiaryIngredientSnapshot[]
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+}
+
+export type MealDiaryIngredientSnapshot = MealIngredient & {
+  foodName: string
 }
 
 export type ActivityEntry = {
@@ -62,4 +78,19 @@ export type UserProfile = {
   weight?: number
   waist?: number
   goals?: string[]
+}
+
+export type MealIngredientUnit = 'g' | 'ml' | 'unidad'
+
+export type MealIngredient = {
+  foodId: string
+  quantity: number
+  unit: MealIngredientUnit
+}
+
+export type Meal = {
+  id: string
+  name: string
+  description?: string
+  ingredients: MealIngredient[]
 }

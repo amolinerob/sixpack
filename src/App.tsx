@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BottomNavigation } from './components/BottomNavigation'
 import { AlimentosScreen } from './screens/AlimentosScreen'
+import { ComidasScreen } from './screens/ComidasScreen'
 import { HoyScreen } from './screens/HoyScreen'
 import { ProgresoScreen } from './screens/ProgresoScreen'
 import { getActiveUser, migrateLegacyDataToAngel, setActiveUserId } from './storage'
@@ -63,6 +64,7 @@ function App() {
           <>
             {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} />}
             {activeScreen === 'alimentos' && <AlimentosScreen />}
+            {activeScreen === 'comidas' && <ComidasScreen />}
             {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} />}
           </>
         )}

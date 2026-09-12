@@ -7,6 +7,7 @@ type Props = {
 
 const navigationItems: Array<{ id: Screen; label: string; icon: string }> = [
   { id: 'hoy', label: 'HOY', icon: '☀' },
+  { id: 'comidas', label: 'COMIDAS', icon: '☕' },
   { id: 'alimentos', label: 'ALIMENTOS', icon: '≡' },
   { id: 'progreso', label: 'PROGRESO', icon: '◌' },
 ]

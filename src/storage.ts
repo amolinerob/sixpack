@@ -1,10 +1,14 @@
-import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, User } from './types'
+import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, User } from './types'
 import { USERS } from './types'
+import type { FoodItem } from './data/foods'
+import { foods as baseFoods } from './data/foods'
 
 const ACTIVE_USER_KEY = 'sixpack.active.user.v1'
 const MIGRATION_DONE_KEY = 'sixpack.legacy.migration.v1'
 const LEGACY_ENTRIES_KEY = 'sixpack.diary.entries.v1'
 const LEGACY_ACTIVITIES_KEY = 'sixpack.activities.entries.v1'
+const SHARED_FOODS_KEY = 'sixpack.shared.foods.v1'
+const SHARED_MEALS_KEY = 'sixpack.shared.meals.v1'
 
 export const DEFAULT_USER_ID = 'angel'
 
@@ -18,6 +22,14 @@ export function getActivitiesStorageKey(userId: string) {
 
 export function getBodyMeasurementsStorageKey(userId: string) {
   return `sixpack.body.measurements.v1.${userId}`
+}
+
+export function getSharedFoodsStorageKey() {
+  return SHARED_FOODS_KEY
+}
+
+export function getSharedMealsStorageKey() {
+  return SHARED_MEALS_KEY
 }
 
 export function getUserById(userId: string | null | undefined): User | undefined {
@@ -99,6 +111,89 @@ export function loadBodyMeasurements(userId: string): BodyMeasurement[] {
 
 export function saveBodyMeasurements(userId: string, measurements: BodyMeasurement[]) {
   localStorage.setItem(getBodyMeasurementsStorageKey(userId), JSON.stringify(measurements))
+}
+
+export function loadSharedFoods(): FoodItem[] {
+  const raw = localStorage.getItem(getSharedFoodsStorageKey())
+  if (!raw) {
+    return []
+  }
+
+  try {
+    return JSON.parse(raw) as FoodItem[]
+  } catch {
+    return []
+  }
+}
+
+export function saveSharedFoods(items: FoodItem[]) {
+  localStorage.setItem(getSharedFoodsStorageKey(), JSON.stringify(items))
+}
+
+export function getCombinedFoods(): FoodItem[] {
+  const shared = loadSharedFoods()
+  const baseMap = new Map(baseFoods.map((food) => [food.id, food]))
+  const overrideMap = new Map(shared.map((food) => [food.id, food]))
+
+  const mergedBase = baseFoods.map((food) => {
+    return { ...food, ...(overrideMap.get(food.id) ?? {}) }
+  })
+
+  const customFoods = shared.filter((food) => !baseMap.has(food.id))
+
+  return [...mergedBase, ...customFoods]
+}
+
+export function saveFoodToShared(food: FoodItem) {
+  const shared = loadSharedFoods()
+  const index = shared.findIndex((item) => item.id === food.id)
+  if (index >= 0) {
+    shared[index] = food
+  } else {
+    shared.push(food)
+  }
+
+  saveSharedFoods(shared)
+}
+
+export function deleteSharedFood(foodId: string) {
+  const shared = loadSharedFoods()
+  const next = shared.filter((food) => food.id !== foodId)
+  saveSharedFoods(next)
+}
+
+export function getFoodByIdFromCombined(foodId: string): FoodItem | undefined {
+  return getCombinedFoods().find((food) => food.id === foodId)
+}
+
+export function loadSharedMeals(): Meal[] {
+  const raw = localStorage.getItem(getSharedMealsStorageKey())
+  if (!raw) {
+    return []
+  }
+
+  try {
+    return JSON.parse(raw) as Meal[]
+  } catch {
+    return []
+  }
+}
+
+export function saveSharedMeals(meals: Meal[]) {
+  localStorage.setItem(getSharedMealsStorageKey(), JSON.stringify(meals))
+}
+
+export function createSharedMeal(meal: Meal) {
+  saveSharedMeals([...loadSharedMeals(), meal])
+}
+
+export function updateSharedMeal(meal: Meal) {
+  const meals = loadSharedMeals()
+  saveSharedMeals(meals.map((item) => item.id === meal.id ? meal : item))
+}
+
+export function deleteSharedMeal(mealId: string) {
+  saveSharedMeals(loadSharedMeals().filter((meal) => meal.id !== mealId))
 }
 
 export function migrateLegacyDataToAngel() {
