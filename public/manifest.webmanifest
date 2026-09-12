@@ -3,25 +3,26 @@
   "short_name": "Six Pack",
   "display": "standalone",
   "orientation": "portrait",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "background_color": "#F7F5EF",
   "theme_color": "#153A2F",
   "description": "Seguimiento nutricional, deportivo y antropométrico.",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "icons/icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
