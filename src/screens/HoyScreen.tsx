@@ -70,8 +70,8 @@ export function HoyScreen() {
   const [activities, setActivities] = useState<ActivityEntry[]>(loadActivities)
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [activityModalOpen, setActivityModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
-  const [activeMeal, setActiveMeal] = useState<MealName>('Desayuno')
   const [searchName, setSearchName] = useState('')
   const [searchBrand, setSearchBrand] = useState('')
   const [selectedFoodId, setSelectedFoodId] = useState(foods[0]?.id ?? '')
@@ -119,7 +119,6 @@ export function HoyScreen() {
   function openSelector(meal: MealName) {
     const food = foods[0]
     const firstQuantity = getServingGramsInitial(food)
-    setActiveMeal(meal)
     setDraftMeal(meal)
     setSelectedFoodId(food.id)
     setQuantityGrams(firstQuantity ?? 100)
@@ -132,7 +131,6 @@ export function HoyScreen() {
   function openEditor(entry: FoodDiaryEntry) {
     const food = getFoodById(entry.foodId)
     setEditingId(entry.id)
-    setActiveMeal(entry.meal)
     setDraftMeal(entry.meal)
     setSelectedFoodId(food.id)
     setQuantityGrams(entry.quantityGrams)
