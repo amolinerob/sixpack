@@ -1,5 +1,15 @@
 export type Screen = 'hoy' | 'alimentos' | 'progreso'
 
+export type User = {
+  id: string
+  name: string
+}
+
+export const USERS = [
+  { id: 'angel', name: 'Ángel' },
+  { id: 'aurora', name: 'Aurora' },
+] satisfies User[]
+
 export const MEALS = ['Desayuno', 'Comida', 'Merienda', 'Cena', 'Extras'] as const
 export const ACTIVITY_TYPES = ['CrossFit', 'Bicicleta', 'Caminata', 'Carrera', 'Otra'] as const
 
@@ -35,4 +45,12 @@ export type DiaryDraft = {
   meal: MealName
   quantityGrams: number
   date: string
+}
+
+export type UserProfile = {
+  id: string
+  name: string
+  weight?: number
+  waist?: number
+  goals?: string[]
 }

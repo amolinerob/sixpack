@@ -1,49 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { foods } from '../data/foods'
-import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type MealName } from '../types'
-
-const STORAGE_KEY = 'sixpack.diary.entries.v1'
-const ACTIVITY_STORAGE_KEY = 'sixpack.activities.entries.v1'
+import { loadActivities, loadEntries, saveActivities, saveEntries } from '../storage'
+import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type MealName, type User } from '../types'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-function loadEntries(): FoodDiaryEntry[] {
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) {
-    return []
-  }
-
-  try {
-    return JSON.parse(raw) as FoodDiaryEntry[]
-  } catch {
-    return []
-  }
-}
-
-function saveEntries(entries: FoodDiaryEntry[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-}
-
-function loadActivities(): ActivityEntry[] {
-  const raw = localStorage.getItem(ACTIVITY_STORAGE_KEY)
-  if (!raw) {
-    return []
-  }
-
-  try {
-    return JSON.parse(raw) as ActivityEntry[]
-  } catch {
-    return []
-  }
-}
-
-function saveActivities(entries: ActivityEntry[]) {
-  localStorage.setItem(ACTIVITY_STORAGE_KEY, JSON.stringify(entries))
 }
 
 function dateOffset(dateKey: string, days: number) {
@@ -64,10 +28,10 @@ function getFoodById(foodId: string) {
   return foods.find((food) => food.id === foodId) ?? foods[0]
 }
 
-export function HoyScreen() {
+export function HoyScreen({ activeUser }: { activeUser: User }) {
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
-  const [entries, setEntries] = useState<FoodDiaryEntry[]>(loadEntries)
-  const [activities, setActivities] = useState<ActivityEntry[]>(loadActivities)
+  const [entries, setEntries] = useState<FoodDiaryEntry[]>(() => loadEntries(activeUser.id))
+  const [activities, setActivities] = useState<ActivityEntry[]>(() => loadActivities(activeUser.id))
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [activityModalOpen, setActivityModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -82,6 +46,11 @@ export function HoyScreen() {
   const [activityMinutes, setActivityMinutes] = useState<number>(60)
   const [activityCalories, setActivityCalories] = useState<number>(0)
   const [activityNotes, setActivityNotes] = useState('')
+
+  useEffect(() => {
+    setEntries(loadEntries(activeUser.id))
+    setActivities(loadActivities(activeUser.id))
+  }, [activeUser.id])
 
   const selectedFood = useMemo(
     () => foods.find((food) => food.id === selectedFoodId) ?? foods[0],
@@ -180,7 +149,7 @@ export function HoyScreen() {
       })
 
       setEntries(next)
-      saveEntries(next)
+      saveEntries(activeUser.id, next)
     } else {
       const next: FoodDiaryEntry = {
         id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
@@ -198,7 +167,7 @@ export function HoyScreen() {
 
       const nextEntries = [...entries, next]
       setEntries(nextEntries)
-      saveEntries(nextEntries)
+      saveEntries(activeUser.id, nextEntries)
     }
 
     closeSelector()
@@ -207,7 +176,7 @@ export function HoyScreen() {
   function deleteEntry(entryId: string) {
     const next = entries.filter((entry) => entry.id !== entryId)
     setEntries(next)
-    saveEntries(next)
+    saveEntries(activeUser.id, next)
   }
 
   function openActivityEditor(activity: ActivityEntry) {
@@ -222,7 +191,7 @@ export function HoyScreen() {
   function deleteActivity(activityId: string) {
     const next = activities.filter((activity) => activity.id !== activityId)
     setActivities(next)
-    saveActivities(next)
+    saveActivities(activeUser.id, next)
   }
 
   function confirmActivity() {
@@ -246,7 +215,7 @@ export function HoyScreen() {
       })
 
       setActivities(next)
-      saveActivities(next)
+      saveActivities(activeUser.id, next)
     } else {
       const next: ActivityEntry = {
         id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
@@ -260,7 +229,7 @@ export function HoyScreen() {
 
       const nextActivities = [...activities, next]
       setActivities(nextActivities)
-      saveActivities(nextActivities)
+      saveActivities(activeUser.id, nextActivities)
     }
 
     setActivityModalOpen(false)
