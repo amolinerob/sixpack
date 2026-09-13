@@ -1106,6 +1106,41 @@ button {
   gap: 8px;
 }
 
+.measurement-form__field .food-modal__label {
+  line-height: 1.2;
+}
+
+.measurement-form__field .food-modal__quantity {
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: left;
+}
+
+/* Safari/iOS renders date text in an internal centered WebKit control. */
+.measurement-form__field input[type='date'] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.measurement-form__field input[type='date']::-webkit-date-and-time-value {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.measurement-form__field input[type='date']::-webkit-datetime-edit {
+  padding: 0;
+  text-align: left;
+}
+
 .food-modal__label {
   color: var(--text-soft);
   font-size: 11px;
