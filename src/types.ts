@@ -75,10 +75,15 @@ export type BodyMeasurement = {
 export type UserGoals = {
   targetWeightKg?: number
   targetWaistCm?: number
+  /** Campo legado: se conserva en almacenamiento, pero ya no se usa como objetivo de ingesta. */
   targetCaloriesKcal?: number
   targetProteinG?: number
   targetCarbsG?: number
   targetFatG?: number
+  sex?: 'male' | 'female'
+  birthDate?: string
+  heightCm?: number
+  targetDeficitKcal?: number
 }
 
 export type UserProfile = {

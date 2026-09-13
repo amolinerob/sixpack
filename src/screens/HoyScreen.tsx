@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { calculateDailyEnergyBalance } from '../energy'
 import type { FoodItem } from '../data/foods'
-import { getCombinedFoods, loadActivities, loadEntries, loadSharedMeals, loadUserGoals, saveActivities, saveEntries } from '../storage'
+import { getCombinedFoods, loadActivities, loadBodyMeasurements, loadEntries, loadSharedMeals, loadUserGoals, saveActivities, saveEntries } from '../storage'
 import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
@@ -126,10 +127,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
     )
   }, [dateEntries])
 
-  const dailyGoalComparisons = useMemo(() => {
+  const dailyMacroComparisons = useMemo(() => {
     const goals = loadUserGoals(activeUser.id)
     return [
-      { label: 'Calorías', consumed: totals.kcal, target: goals.targetCaloriesKcal, unit: 'kcal' },
       { label: 'Proteínas', consumed: totals.protein, target: goals.targetProteinG, unit: 'g' },
       { label: 'Hidratos', consumed: totals.carbs, target: goals.targetCarbsG, unit: 'g' },
       { label: 'Grasas', consumed: totals.fat, target: goals.targetFatG, unit: 'g' },
@@ -137,6 +137,17 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
       comparison.target !== undefined && comparison.target > 0
     ))
   }, [activeUser.id, totals])
+
+  const dailyEnergyBalance = useMemo(() => {
+    return calculateDailyEnergyBalance({
+      goals: loadUserGoals(activeUser.id),
+      measurements: loadBodyMeasurements(activeUser.id),
+      referenceDate: selectedDate,
+      consumedCalories: totals.kcal,
+      activityCalories: activityTotal,
+    })
+  }, [activeUser.id, activityTotal, selectedDate, totals.kcal])
+  const dailyGoals = useMemo(() => loadUserGoals(activeUser.id), [activeUser.id])
 
   function openSelector(meal: MealName) {
     const food = foods[0]
@@ -352,15 +363,29 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
       </section>
 
       <section className="daily-goals-card" aria-labelledby="daily-goals-title">
-        <span className="daily-goals-card__title" id="daily-goals-title">Objetivo diario</span>
-        {dailyGoalComparisons.length === 0 ? (
-          <div className="daily-goals-card__empty">
-            <span>Configura tus objetivos en Progreso para ver tu progreso diario.</span>
-            <button type="button" onClick={onGoToProgress}>Configurar objetivos</button>
+        <span className="daily-goals-card__title" id="daily-goals-title">Balance del día</span>
+        {dailyEnergyBalance ? (
+          <div className="daily-balance-card__list">
+            <BalanceRow label="Ingerido" value={formatKcal(totals.kcal)} />
+            <BalanceRow label="Gasto estimado" value={formatKcal(dailyEnergyBalance.estimatedDailyExpenditure)} />
+            <BalanceRow
+              label={dailyEnergyBalance.estimatedDeficit >= 0 ? 'Déficit estimado' : 'Superávit estimado'}
+              value={formatKcal(Math.abs(dailyEnergyBalance.estimatedDeficit))}
+            />
+            {dailyGoals.targetDeficitKcal !== undefined
+              ? <BalanceRow label="Objetivo déficit" value={formatKcal(dailyGoals.targetDeficitKcal)} />
+              : <ProgressLink onClick={onGoToProgress}>Configura un déficit objetivo en Progreso</ProgressLink>}
           </div>
         ) : (
-          <div className="daily-goals-card__list">
-            {dailyGoalComparisons.map((comparison) => <DailyGoalRow key={comparison.label} comparison={comparison} />)}
+          <ProgressLink onClick={onGoToProgress}>Completa tus datos físicos en Progreso para calcular tu gasto diario.</ProgressLink>
+        )}
+
+        {dailyMacroComparisons.length > 0 && (
+          <div className="daily-goals-card__macros">
+            <span className="daily-goals-card__subtitle">Macros</span>
+            <div className="daily-goals-card__list">
+              {dailyMacroComparisons.map((comparison) => <DailyGoalRow key={comparison.label} comparison={comparison} />)}
+            </div>
           </div>
         )}
       </section>
@@ -665,6 +690,18 @@ type DailyGoalComparison = {
   consumed: number
   target: number
   unit: string
+}
+
+function formatKcal(value: number) {
+  return `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(value))} kcal`
+}
+
+function BalanceRow({ label, value }: { label: string; value: string }) {
+  return <div className="daily-balance-card__row"><span>{label}</span><strong>{value}</strong></div>
+}
+
+function ProgressLink({ children, onClick }: { children: string; onClick: () => void }) {
+  return <div className="daily-goals-card__empty"><span>{children}</span><button type="button" onClick={onClick}>Ir a Progreso</button></div>
 }
 
 function DailyGoalRow({ comparison }: { comparison: DailyGoalComparison }) {

@@ -172,6 +172,46 @@ button {
   margin-top: 12px;
 }
 
+.daily-goals-card__macros {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.daily-goals-card__subtitle,
+.goals-form__section-title {
+  display: block;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.daily-goals-card__macros .daily-goals-card__list {
+  margin-top: 10px;
+}
+
+.daily-balance-card__list {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.daily-balance-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.daily-balance-card__row strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
 .daily-goals-card__row {
   display: grid;
   gap: 5px;
@@ -959,6 +999,14 @@ button {
   padding: 14px;
 }
 
+.physical-data-card {
+  background: var(--panel);
+  border: 1px solid rgba(150, 170, 150, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px var(--shadow);
+  padding: 14px;
+}
+
 .goals-card__top,
 .goals-card__row {
   display: flex;
@@ -1011,6 +1059,145 @@ button {
 
 .progress-section-label {
   margin-top: 2px;
+}
+
+.evolution-section {
+  display: grid;
+  gap: 12px;
+}
+
+.evolution-period-selector {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--sage-light);
+}
+
+.evolution-period-selector button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.evolution-register-button {
+  width: 100%;
+  min-height: 46px;
+}
+
+.evolution-period-selector button.is-selected {
+  background: var(--panel);
+  color: var(--accent-strong);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+
+.evolution-card {
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid rgba(150, 170, 150, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px var(--shadow);
+  padding: 14px;
+}
+
+.evolution-card__title {
+  display: block;
+  color: var(--green-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.evolution-card__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+
+.evolution-card__summary div {
+  min-width: 0;
+}
+
+.evolution-card__summary span,
+.evolution-card__empty {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.evolution-card__summary strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evolution-card__empty {
+  margin-top: 12px;
+}
+
+.progress-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.progress-chart__guide {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.progress-chart__actual-line {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
+  stroke-opacity: 0.65;
+}
+
+.progress-chart__trend-line {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.progress-chart__point {
+  fill: var(--panel);
+  stroke: var(--text-soft);
+  stroke-width: 1.4;
+}
+
+.progress-chart__target {
+  stroke: var(--accent);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+
+.progress-chart__axis-label,
+.progress-chart__date-label,
+.progress-chart__target-label {
+  fill: var(--text-muted);
+  font-family: var(--font);
+  font-size: 8px;
+}
+
+.progress-chart__target-label {
+  fill: var(--accent-strong);
+  font-weight: 800;
 }
 
 .progress-card {
@@ -1095,6 +1282,14 @@ button {
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
+}
+
+.goals-form__section-title {
+  margin-top: 8px;
+}
+
+.goals-form__section-title:first-child {
+  margin-top: 0;
 }
 
 .measurement-form {
