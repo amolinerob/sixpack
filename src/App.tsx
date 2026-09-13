@@ -1,28 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from './auth/AuthProvider'
 import { BottomNavigation } from './components/BottomNavigation'
 import { AlimentosScreen } from './screens/AlimentosScreen'
 import { ComidasScreen } from './screens/ComidasScreen'
 import { HoyScreen } from './screens/HoyScreen'
+import { LoginScreen } from './screens/LoginScreen'
 import { ProgresoScreen } from './screens/ProgresoScreen'
 import { UsuarioScreen } from './screens/UsuarioScreen'
-import { getActiveUser, migrateLegacyDataToAngel, setActiveUserId } from './storage'
 import { USERS, type Screen, type User } from './types'
 import { applyThemeToRoot, getThemeForUser } from './theme'
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('hoy')
-  const [activeUser, setActiveUser] = useState<User | undefined>(() => getActiveUser())
-  const [showUserSelector, setShowUserSelector] = useState(false)
-
-  useEffect(() => {
-    migrateLegacyDataToAngel()
-    const storedUser = getActiveUser()
-    if (!storedUser) {
-      setShowUserSelector(true)
-    } else {
-      setActiveUser(storedUser)
-    }
-  }, [])
+  const { user, profile, legacyUserKey, loading, error, signOut } = useAuth()
+  const activeUser = useMemo<User | undefined>(() => {
+    if (!legacyUserKey) return undefined
+    const localUser = USERS.find((candidate) => candidate.id === legacyUserKey)
+    return localUser ? { ...localUser, name: profile?.display_name ?? localUser.name } : undefined
+  }, [legacyUserKey, profile?.display_name])
 
   const theme = useMemo(() => getThemeForUser(activeUser), [activeUser])
 
@@ -30,42 +25,21 @@ function App() {
     applyThemeToRoot(theme)
   }, [theme])
 
-  function selectUser(user: User) {
-    setActiveUser(user)
-    setActiveUserId(user.id)
-    setShowUserSelector(false)
-  }
+  if (loading) return <main className="auth-screen"><span className="auth-loading">Comprobando sesión…</span></main>
+  if (!user) return <LoginScreen />
+  if (error || !activeUser) return <main className="auth-screen"><div className="auth-card"><span className="auth-card__brand">SIX PACK</span><span className="error-text">{error ?? 'El perfil autenticado no está asociado a un usuario local válido.'}</span><button className="primary-button" onClick={() => void signOut()}>Cerrar sesión</button></div></main>
 
   return (
     <div className="app-shell">
       <main className="app-main">
-        {showUserSelector || !activeUser ? (
-          <section className="user-picker">
-            <div className="user-picker__card">
-              <span className="user-picker__title">¿Quién está usando Six Pack?</span>
-              <div className="user-picker__list">
-                {USERS.map((user) => (
-                  <button className="user-picker__item" key={user.id} onClick={() => selectUser(user)}>
-                    <span className="user-picker__name">{user.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : (
-          <>
-            {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} onGoToProgress={() => setActiveScreen('progreso')} />}
-            {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
-            {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
-            {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
-            {activeScreen === 'usuario' && <UsuarioScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
-          </>
-        )}
+        {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} onUserClick={() => undefined} onGoToProgress={() => setActiveScreen('progreso')} />}
+        {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => undefined} />}
+        {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => undefined} />}
+        {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => undefined} />}
+        {activeScreen === 'usuario' && <UsuarioScreen activeUser={activeUser} onUserClick={() => undefined} onSignOut={() => void signOut()} />}
       </main>
 
-      {activeUser && !showUserSelector && (
-        <BottomNavigation activeScreen={activeScreen} onNavigate={setActiveScreen} />
-      )}
+      <BottomNavigation activeScreen={activeScreen} onNavigate={setActiveScreen} />
     </div>
   )
 }
