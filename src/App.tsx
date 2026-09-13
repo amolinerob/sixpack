@@ -37,15 +37,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      {activeUser && (
-        <section className="app-user-strip">
-          <button className="app-user-switch" onClick={() => setShowUserSelector(true)}>
-            <span className="app-user-switch__icon">👤</span>
-            <span className="app-user-switch__name">{activeUser.name}</span>
-          </button>
-        </section>
-      )}
-
       <main className="app-main">
         {showUserSelector || !activeUser ? (
           <section className="user-picker">
@@ -62,10 +53,10 @@ function App() {
           </section>
         ) : (
           <>
-            {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} />}
-            {activeScreen === 'alimentos' && <AlimentosScreen />}
-            {activeScreen === 'comidas' && <ComidasScreen />}
-            {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} />}
+            {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} onGoToProgress={() => setActiveScreen('progreso')} />}
+            {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
+            {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
+            {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
           </>
         )}
       </main>

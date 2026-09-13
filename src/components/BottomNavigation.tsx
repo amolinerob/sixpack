@@ -1,15 +1,16 @@
 import type { Screen } from '../types'
+import { SixPackIcon, type SixPackIconName } from './SixPackIcon'
 
 type Props = {
   activeScreen: Screen
   onNavigate: (screen: Screen) => void
 }
 
-const navigationItems: Array<{ id: Screen; label: string; icon: string }> = [
-  { id: 'hoy', label: 'HOY', icon: '☀' },
-  { id: 'comidas', label: 'COMIDAS', icon: '☕' },
-  { id: 'alimentos', label: 'ALIMENTOS', icon: '≡' },
-  { id: 'progreso', label: 'PROGRESO', icon: '◌' },
+const navigationItems: Array<{ id: Screen; label: string; icon: SixPackIconName }> = [
+  { id: 'hoy', label: 'HOY', icon: 'today' },
+  { id: 'comidas', label: 'COMIDAS', icon: 'meals' },
+  { id: 'alimentos', label: 'ALIMENTOS', icon: 'foods' },
+  { id: 'progreso', label: 'PROGRESO', icon: 'progress' },
 ]
 
 export function BottomNavigation({ activeScreen, onNavigate }: Props) {
@@ -23,7 +24,7 @@ export function BottomNavigation({ activeScreen, onNavigate }: Props) {
           type="button"
         >
           <span className="nav-item__icon" aria-hidden="true">
-            {item.icon}
+            <SixPackIcon name={item.icon} />
           </span>
           <span className="nav-item__label">{item.label}</span>
         </button>

@@ -4,6 +4,7 @@ export type ThemeId = 'green' | 'rose'
 
 export type Theme = {
   id: ThemeId
+  background: string
   green: string
   greenStrong: string
   greenSoft: string
@@ -15,6 +16,7 @@ export type Theme = {
 export const THEMES: Record<ThemeId, Theme> = {
   green: {
     id: 'green',
+    background: '#eef3ee',
     green: '#8fb58f',
     greenStrong: '#153a2f',
     greenSoft: '#dae7dc',
@@ -24,6 +26,7 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
   rose: {
     id: 'rose',
+    background: '#fcf3f6',
     green: '#d4a0ad',
     greenStrong: '#6b4055',
     greenSoft: '#f8dbe4',
@@ -45,6 +48,7 @@ export function getThemeForUser(user: User | undefined): Theme {
 
 export function applyThemeToRoot(theme: Theme) {
   const root = document.documentElement
+  root.style.setProperty('--background', theme.background)
   root.style.setProperty('--green', theme.green)
   root.style.setProperty('--green-strong', theme.greenStrong)
   root.style.setProperty('--green-soft', theme.greenSoft)

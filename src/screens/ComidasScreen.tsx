@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { FoodItem } from '../data/foods'
 import { createSharedMeal, deleteSharedMeal, getCombinedFoods, loadSharedMeals, updateSharedMeal } from '../storage'
-import type { Meal, MealIngredient, MealIngredientUnit } from '../types'
+import type { Meal, MealIngredient, MealIngredientUnit, User } from '../types'
+import { ScreenHeader } from '../components/ScreenHeader'
 
 type IngredientForm = { foodId: string; quantity: string; unit: MealIngredientUnit }
 type MealForm = { name: string; description: string; ingredients: IngredientForm[] }
@@ -51,7 +52,7 @@ function MacroSummary({ nutrition }: { nutrition: MealNutrition }) {
   </div>
 }
 
-export function ComidasScreen() {
+export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
   const [foods] = useState<FoodItem[]>(() => getCombinedFoods())
   const [meals, setMeals] = useState<Meal[]>(() => loadSharedMeals())
   const [modalOpen, setModalOpen] = useState(false)
@@ -150,9 +151,7 @@ export function ComidasScreen() {
   }
 
   return <section className="screen screen-comidas">
-    <section className="app-header app-header--simple">
-      <div><span className="app-kicker">Comidas</span><h1 className="app-title">Comidas</h1></div>
-    </section>
+    <ScreenHeader title="COMIDAS" user={activeUser} onUserClick={onUserClick} />
     <section className="meals-panel">
       <div className="meals-panel__header"><span className="meals-panel__title">Mis comidas</span><button className="primary-button" onClick={openCreate}>+ Añadir comida</button></div>
       <div className="meals-list">

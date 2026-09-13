@@ -1,4 +1,4 @@
-import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, User } from './types'
+import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, User, UserGoals } from './types'
 import { USERS } from './types'
 import type { FoodItem } from './data/foods'
 import { foods as baseFoods } from './data/foods'
@@ -22,6 +22,10 @@ export function getActivitiesStorageKey(userId: string) {
 
 export function getBodyMeasurementsStorageKey(userId: string) {
   return `sixpack.body.measurements.v1.${userId}`
+}
+
+export function getUserGoalsStorageKey(userId: string) {
+  return `sixpack.user.goals.v1.${userId}`
 }
 
 export function getSharedFoodsStorageKey() {
@@ -111,6 +115,23 @@ export function loadBodyMeasurements(userId: string): BodyMeasurement[] {
 
 export function saveBodyMeasurements(userId: string, measurements: BodyMeasurement[]) {
   localStorage.setItem(getBodyMeasurementsStorageKey(userId), JSON.stringify(measurements))
+}
+
+export function loadUserGoals(userId: string): UserGoals {
+  const raw = localStorage.getItem(getUserGoalsStorageKey(userId))
+  if (!raw) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(raw) as UserGoals
+  } catch {
+    return {}
+  }
+}
+
+export function saveUserGoals(userId: string, goals: UserGoals) {
+  localStorage.setItem(getUserGoalsStorageKey(userId), JSON.stringify(goals))
 }
 
 export function loadSharedFoods(): FoodItem[] {

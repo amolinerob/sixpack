@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { foods as baseFoods, type FoodItem } from '../data/foods'
 import { deleteSharedFood, getCombinedFoods, saveFoodToShared } from '../storage'
+import type { User } from '../types'
+import { ScreenHeader } from '../components/ScreenHeader'
 
 function normalizeFoodName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -24,7 +26,7 @@ function parseDecimalFromSpanishInput(value: string): number {
   return Number(normalized)
 }
 
-export function AlimentosScreen() {
+export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
   const [foods, setFoods] = useState<FoodItem[]>(() => getCombinedFoods())
   const [searchName, setSearchName] = useState('')
   const [selectedFoodId, setSelectedFoodId] = useState(() => getCombinedFoods()[0]?.id ?? '')
@@ -162,9 +164,7 @@ export function AlimentosScreen() {
 
   return (
     <section className="screen screen-alimentos">
-      <section className="app-header app-header--simple">
-        <span className="app-kicker">Alimentos</span>
-      </section>
+      <ScreenHeader title="ALIMENTOS" user={activeUser} onUserClick={onUserClick} />
 
       <section className="food-panel">
         <section className="food-search">

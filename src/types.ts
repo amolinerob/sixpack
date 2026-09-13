@@ -72,6 +72,15 @@ export type BodyMeasurement = {
   createdAt: string
 }
 
+export type UserGoals = {
+  targetWeightKg?: number
+  targetWaistCm?: number
+  targetCaloriesKcal?: number
+  targetProteinG?: number
+  targetCarbsG?: number
+  targetFatG?: number
+}
+
 export type UserProfile = {
   id: string
   name: string

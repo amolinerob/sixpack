@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FoodItem } from '../data/foods'
-import { getCombinedFoods, loadActivities, loadEntries, loadSharedMeals, saveActivities, saveEntries } from '../storage'
+import { getCombinedFoods, loadActivities, loadEntries, loadSharedMeals, loadUserGoals, saveActivities, saveEntries } from '../storage'
 import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User } from '../types'
+import { ScreenHeader } from '../components/ScreenHeader'
 
 const foods = getCombinedFoods()
 
@@ -61,7 +62,7 @@ function createMealSnapshot(meal: Meal): MealDiarySnapshot {
   }
 }
 
-export function HoyScreen({ activeUser }: { activeUser: User }) {
+export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeUser: User; onUserClick: () => void; onGoToProgress: () => void }) {
   const [sharedMeals] = useState<Meal[]>(() => loadSharedMeals())
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
   const [entries, setEntries] = useState<FoodDiaryEntry[]>(() => loadEntries(activeUser.id))
@@ -124,6 +125,18 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
       { kcal: 0, protein: 0, carbs: 0, fat: 0 },
     )
   }, [dateEntries])
+
+  const dailyGoalComparisons = useMemo(() => {
+    const goals = loadUserGoals(activeUser.id)
+    return [
+      { label: 'Calorías', consumed: totals.kcal, target: goals.targetCaloriesKcal, unit: 'kcal' },
+      { label: 'Proteínas', consumed: totals.protein, target: goals.targetProteinG, unit: 'g' },
+      { label: 'Hidratos', consumed: totals.carbs, target: goals.targetCarbsG, unit: 'g' },
+      { label: 'Grasas', consumed: totals.fat, target: goals.targetFatG, unit: 'g' },
+    ].filter((comparison): comparison is DailyGoalComparison => (
+      comparison.target !== undefined && comparison.target > 0
+    ))
+  }, [activeUser.id, totals])
 
   function openSelector(meal: MealName) {
     const food = foods[0]
@@ -329,7 +342,8 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
 
   return (
     <section className="screen screen-hoy">
-      <section className="app-header app-header--today">
+      <ScreenHeader title="HOY" user={activeUser} onUserClick={onUserClick} />
+      <section className="today-date-header">
         <div className="date-nav">
           <button className="date-nav__chevron" onClick={() => setSelectedDate(dateOffset(selectedDate, -1))}>‹</button>
           <span className="today-date">{formatDisplayDate(selectedDate)}</span>
@@ -337,26 +351,18 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
         </div>
       </section>
 
-      <section className="summary-card">
-        <div className="summary-card__top">
-          <span className="summary-label">Resumen del día</span>
-          <span className="summary-total">{round(totals.kcal)} kcal</span>
-        </div>
-
-        <div className="macro-grid">
-          <div className="macro-item">
-            <span className="macro-label">Proteína</span>
-            <span className="macro-value">{round(totals.protein)} g</span>
+      <section className="daily-goals-card" aria-labelledby="daily-goals-title">
+        <span className="daily-goals-card__title" id="daily-goals-title">Objetivo diario</span>
+        {dailyGoalComparisons.length === 0 ? (
+          <div className="daily-goals-card__empty">
+            <span>Configura tus objetivos en Progreso para ver tu progreso diario.</span>
+            <button type="button" onClick={onGoToProgress}>Configurar objetivos</button>
           </div>
-          <div className="macro-item">
-            <span className="macro-label">Hidratos</span>
-            <span className="macro-value">{round(totals.carbs)} g</span>
+        ) : (
+          <div className="daily-goals-card__list">
+            {dailyGoalComparisons.map((comparison) => <DailyGoalRow key={comparison.label} comparison={comparison} />)}
           </div>
-          <div className="macro-item">
-            <span className="macro-label">Grasas</span>
-            <span className="macro-value">{round(totals.fat)} g</span>
-          </div>
-        </div>
+        )}
       </section>
 
       <section className="meal-card">
@@ -651,6 +657,35 @@ export function HoyScreen({ activeUser }: { activeUser: User }) {
         </div>
       )}
     </section>
+  )
+}
+
+type DailyGoalComparison = {
+  label: string
+  consumed: number
+  target: number
+  unit: string
+}
+
+function DailyGoalRow({ comparison }: { comparison: DailyGoalComparison }) {
+  const percentage = Math.max(0, (comparison.consumed / comparison.target) * 100)
+  const displayedPercentage = Math.round(percentage)
+  const progressWidth = Math.min(percentage, 100)
+  const value = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 })
+
+  return (
+    <div className="daily-goals-card__row">
+      <div className="daily-goals-card__row-top">
+        <span>{comparison.label}</span>
+        <span>{value.format(comparison.consumed)} / {value.format(comparison.target)} {comparison.unit}</span>
+      </div>
+      <div className="daily-goals-card__progress-meta">
+        <div className="daily-goals-card__track" aria-hidden="true">
+          <span className="daily-goals-card__fill" style={{ width: `${progressWidth}%` }} />
+        </div>
+        <span>{displayedPercentage}%</span>
+      </div>
+    </div>
   )
 }
 

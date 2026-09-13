@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { loadBodyMeasurements, saveBodyMeasurements } from '../storage'
-import type { BodyMeasurement, User } from '../types'
+import { loadBodyMeasurements, loadUserGoals, saveBodyMeasurements, saveUserGoals } from '../storage'
+import type { BodyMeasurement, User, UserGoals } from '../types'
+import { ScreenHeader } from '../components/ScreenHeader'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -26,14 +27,36 @@ function roundValue(value: number | undefined) {
   return Math.round(value * 10) / 10
 }
 
-export function ProgresoScreen({ activeUser }: { activeUser: User }) {
+function formatGoalValue(value: number, unit: string, minimumFractionDigits = 0) {
+  return `${new Intl.NumberFormat('es-ES', { minimumFractionDigits, maximumFractionDigits: 1 }).format(value)} ${unit}`
+}
+
+function goalValueToInput(value: number | undefined) {
+  return value?.toString() ?? ''
+}
+
+function parseGoalValue(value: string) {
+  const trimmed = value.trim()
+  return trimmed === '' ? undefined : Number(trimmed.replace(',', '.'))
+}
+
+export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>(() => loadBodyMeasurements(activeUser.id))
+  const [goals, setGoals] = useState<UserGoals>(() => loadUserGoals(activeUser.id))
   const [modalOpen, setModalOpen] = useState(false)
+  const [goalsModalOpen, setGoalsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [date, setDate] = useState(todayIsoLocal())
   const [weightKg, setWeightKg] = useState('')
   const [waistCm, setWaistCm] = useState('')
   const [error, setError] = useState('')
+  const [goalsError, setGoalsError] = useState('')
+  const [targetWeightKg, setTargetWeightKg] = useState('')
+  const [targetWaistCm, setTargetWaistCm] = useState('')
+  const [targetCaloriesKcal, setTargetCaloriesKcal] = useState('')
+  const [targetProteinG, setTargetProteinG] = useState('')
+  const [targetCarbsG, setTargetCarbsG] = useState('')
+  const [targetFatG, setTargetFatG] = useState('')
 
   const sorted = useMemo(() => {
     return [...measurements].sort((a, b) => b.date.localeCompare(a.date))
@@ -65,6 +88,45 @@ export function ProgresoScreen({ activeUser }: { activeUser: User }) {
   function closeModal() {
     setModalOpen(false)
     setError('')
+  }
+
+  function openGoalsModal() {
+    setTargetWeightKg(goalValueToInput(goals.targetWeightKg))
+    setTargetWaistCm(goalValueToInput(goals.targetWaistCm))
+    setTargetCaloriesKcal(goalValueToInput(goals.targetCaloriesKcal))
+    setTargetProteinG(goalValueToInput(goals.targetProteinG))
+    setTargetCarbsG(goalValueToInput(goals.targetCarbsG))
+    setTargetFatG(goalValueToInput(goals.targetFatG))
+    setGoalsError('')
+    setGoalsModalOpen(true)
+  }
+
+  function saveGoals() {
+    const nextGoals: UserGoals = {
+      targetWeightKg: parseGoalValue(targetWeightKg),
+      targetWaistCm: parseGoalValue(targetWaistCm),
+      targetCaloriesKcal: parseGoalValue(targetCaloriesKcal),
+      targetProteinG: parseGoalValue(targetProteinG),
+      targetCarbsG: parseGoalValue(targetCarbsG),
+      targetFatG: parseGoalValue(targetFatG),
+    }
+    const validations: Array<[number | undefined, number, string]> = [
+      [nextGoals.targetWeightKg, 500, 'El peso objetivo debe ser un número positivo razonable.'],
+      [nextGoals.targetWaistCm, 250, 'La cintura objetivo debe ser un número positivo razonable.'],
+      [nextGoals.targetCaloriesKcal, 20000, 'Las calorías diarias deben ser un valor positivo razonable.'],
+      [nextGoals.targetProteinG, 2000, 'Las proteínas diarias deben ser un valor positivo razonable.'],
+      [nextGoals.targetCarbsG, 2000, 'Los hidratos diarios deben ser un valor positivo razonable.'],
+      [nextGoals.targetFatG, 2000, 'Las grasas diarias deben ser un valor positivo razonable.'],
+    ]
+    const invalid = validations.find(([value, maximum]) => value !== undefined && (Number.isNaN(value) || value <= 0 || value > maximum))
+    if (invalid) {
+      setGoalsError(invalid[2])
+      return
+    }
+
+    setGoals(nextGoals)
+    saveUserGoals(activeUser.id, nextGoals)
+    setGoalsModalOpen(false)
   }
 
   function saveMeasurement() {
@@ -109,13 +171,25 @@ export function ProgresoScreen({ activeUser }: { activeUser: User }) {
 
   return (
     <section className="screen screen-progreso">
-      <section className="app-header app-header--simple">
-        <div>
-          <span className="app-kicker">Progreso</span>
-          <h1 className="app-title">Progreso</h1>
+      <ScreenHeader title="PROGRESO" user={activeUser} onUserClick={onUserClick} />
+
+      <section className="goals-card">
+        <div className="goals-card__top">
+          <span className="goals-card__title">Objetivos</span>
+          <button className="goals-card__edit" type="button" onClick={openGoalsModal}>✎ Editar</button>
+        </div>
+        <div className="goals-card__list">
+          {goals.targetWeightKg !== undefined && <GoalRow label="Peso" value={formatGoalValue(goals.targetWeightKg, 'kg', 1)} />}
+          {goals.targetWaistCm !== undefined && <GoalRow label="Cintura" value={formatGoalValue(goals.targetWaistCm, 'cm', 1)} />}
+          {goals.targetCaloriesKcal !== undefined && <GoalRow label="Calorías" value={formatGoalValue(goals.targetCaloriesKcal, 'kcal')} />}
+          {goals.targetProteinG !== undefined && <GoalRow label="Proteínas" value={formatGoalValue(goals.targetProteinG, 'g')} />}
+          {goals.targetCarbsG !== undefined && <GoalRow label="Hidratos" value={formatGoalValue(goals.targetCarbsG, 'g')} />}
+          {goals.targetFatG !== undefined && <GoalRow label="Grasas" value={formatGoalValue(goals.targetFatG, 'g')} />}
+          {Object.values(goals).every((value) => value === undefined) && <span className="goals-card__empty">Configura tus objetivos diarios.</span>}
         </div>
       </section>
 
+      <span className="progress-section-label">Estado actual</span>
       <section className="progress-summary">
         <article className="progress-card">
           <div className="progress-card__top">
@@ -195,15 +269,21 @@ export function ProgresoScreen({ activeUser }: { activeUser: User }) {
               <button className="food-modal__close" onClick={closeModal}>×</button>
             </div>
 
-            <div className="food-modal__form">
-              <label className="food-modal__label">Fecha</label>
-              <input className="food-modal__quantity" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+            <div className="food-modal__form measurement-form">
+              <div className="measurement-form__field">
+                <label className="food-modal__label">Fecha</label>
+                <input className="food-modal__quantity" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+              </div>
 
-              <label className="food-modal__label">Peso (kg)</label>
-              <input className="food-modal__quantity" type="number" min="0" step="0.1" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="Opcional" />
+              <div className="measurement-form__field">
+                <label className="food-modal__label">Peso (kg)</label>
+                <input className="food-modal__quantity" type="number" min="0" step="0.1" value={weightKg} onChange={(event) => setWeightKg(event.target.value)} placeholder="Opcional" />
+              </div>
 
-              <label className="food-modal__label">Cintura (cm)</label>
-              <input className="food-modal__quantity" type="number" min="0" step="0.1" value={waistCm} onChange={(event) => setWaistCm(event.target.value)} placeholder="Opcional" />
+              <div className="measurement-form__field">
+                <label className="food-modal__label">Cintura (cm)</label>
+                <input className="food-modal__quantity" type="number" min="0" step="0.1" value={waistCm} onChange={(event) => setWaistCm(event.target.value)} placeholder="Opcional" />
+              </div>
 
               {error && <span className="error-text">{error}</span>}
 
@@ -215,6 +295,40 @@ export function ProgresoScreen({ activeUser }: { activeUser: User }) {
           </div>
         </div>
       )}
+
+      {goalsModalOpen && (
+        <div className="food-modal-backdrop">
+          <div className="food-modal">
+            <div className="food-modal__top">
+              <span className="food-modal__title">Editar objetivos</span>
+              <button className="food-modal__close" onClick={() => setGoalsModalOpen(false)}>×</button>
+            </div>
+            <div className="food-modal__form">
+              <label className="food-modal__label">Peso objetivo (kg)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetWeightKg} onChange={(event) => setTargetWeightKg(event.target.value)} placeholder="Opcional" />
+              <label className="food-modal__label">Cintura objetivo (cm)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetWaistCm} onChange={(event) => setTargetWaistCm(event.target.value)} placeholder="Opcional" />
+              <label className="food-modal__label">Calorías diarias (kcal)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetCaloriesKcal} onChange={(event) => setTargetCaloriesKcal(event.target.value)} placeholder="Opcional" />
+              <label className="food-modal__label">Proteínas diarias (g)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetProteinG} onChange={(event) => setTargetProteinG(event.target.value)} placeholder="Opcional" />
+              <label className="food-modal__label">Hidratos diarios (g)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetCarbsG} onChange={(event) => setTargetCarbsG(event.target.value)} placeholder="Opcional" />
+              <label className="food-modal__label">Grasas diarias (g)</label>
+              <input className="food-modal__quantity" inputMode="decimal" value={targetFatG} onChange={(event) => setTargetFatG(event.target.value)} placeholder="Opcional" />
+              {goalsError && <span className="error-text">{goalsError}</span>}
+              <div className="food-modal__confirm">
+                <button className="secondary-button" onClick={() => setGoalsModalOpen(false)}>Cancelar</button>
+                <button className="primary-button" onClick={saveGoals}>Guardar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
+}
+
+function GoalRow({ label, value }: { label: string; value: string }) {
+  return <div className="goals-card__row"><span>{label}</span><strong>{value}</strong></div>
 }
