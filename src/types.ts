@@ -1,4 +1,4 @@
-export type Screen = 'hoy' | 'alimentos' | 'comidas' | 'progreso'
+export type Screen = 'hoy' | 'alimentos' | 'comidas' | 'progreso' | 'usuario'
 
 export type User = {
   id: string

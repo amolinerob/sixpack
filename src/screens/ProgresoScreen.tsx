@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { calculateBmr, getAgeAtDate, getLatestWeightForDate } from '../energy'
 import { ProgressChart } from '../components/ProgressChart'
 import { calculateMovingAverage, calculatePeriodChange, filterPointsByPeriod, getMeasurementPoints, type ProgressPeriod } from '../progressSeries'
-import { loadBodyMeasurements, loadUserGoals, saveBodyMeasurements, saveUserGoals } from '../storage'
+import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySummary'
+import { loadActivities, loadBodyMeasurements, loadEntries, loadUserGoals, saveBodyMeasurements } from '../storage'
 import type { BodyMeasurement, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
@@ -34,36 +34,17 @@ function formatGoalValue(value: number, unit: string, minimumFractionDigits = 0)
   return `${new Intl.NumberFormat('es-ES', { minimumFractionDigits, maximumFractionDigits: 1 }).format(value)} ${unit}`
 }
 
-function goalValueToInput(value: number | undefined) {
-  return value?.toString() ?? ''
-}
-
-function parseGoalValue(value: string) {
-  const trimmed = value.trim()
-  return trimmed === '' ? undefined : Number(trimmed.replace(',', '.'))
-}
-
 export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>(() => loadBodyMeasurements(activeUser.id))
-  const [goals, setGoals] = useState<UserGoals>(() => loadUserGoals(activeUser.id))
+  const [goals] = useState<UserGoals>(() => loadUserGoals(activeUser.id))
   const [modalOpen, setModalOpen] = useState(false)
-  const [goalsModalOpen, setGoalsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [date, setDate] = useState(todayIsoLocal())
   const [weightKg, setWeightKg] = useState('')
   const [waistCm, setWaistCm] = useState('')
   const [error, setError] = useState('')
-  const [goalsError, setGoalsError] = useState('')
-  const [targetWeightKg, setTargetWeightKg] = useState('')
-  const [targetWaistCm, setTargetWaistCm] = useState('')
-  const [targetProteinG, setTargetProteinG] = useState('')
-  const [targetCarbsG, setTargetCarbsG] = useState('')
-  const [targetFatG, setTargetFatG] = useState('')
-  const [sex, setSex] = useState<UserGoals['sex'] | ''>('')
-  const [birthDate, setBirthDate] = useState('')
-  const [heightCm, setHeightCm] = useState('')
-  const [targetDeficitKcal, setTargetDeficitKcal] = useState('')
   const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1m')
+  const [weekOffset, setWeekOffset] = useState(0)
 
   const sorted = useMemo(() => {
     return [...measurements].sort((a, b) => b.date.localeCompare(a.date))
@@ -73,14 +54,6 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const latestWaist = sorted.find((m) => m.waistCm !== undefined)
   const firstWeight = sorted.find((m) => m.weightKg !== undefined)
   const firstWaist = sorted.find((m) => m.waistCm !== undefined)
-  const physicalReferenceDate = todayIsoLocal()
-  const physicalWeight = getLatestWeightForDate(measurements, physicalReferenceDate)
-  const physicalAge = getAgeAtDate(goals.birthDate, physicalReferenceDate)
-  const physicalBmr = physicalWeight !== undefined && physicalAge !== undefined && goals.heightCm !== undefined
-    ? calculateBmr({ sex: goals.sex, weightKg: physicalWeight, heightCm: goals.heightCm, age: physicalAge })
-    : undefined
-  const hasVisibleGoals = [goals.targetWeightKg, goals.targetWaistCm, goals.targetDeficitKcal, goals.targetProteinG, goals.targetCarbsG, goals.targetFatG]
-    .some((value) => value !== undefined)
   const evolutionReferenceDate = todayIsoLocal()
   const weightEvolution = useMemo(() => {
     const points = filterPointsByPeriod(getMeasurementPoints(measurements, 'weightKg'), evolutionPeriod, evolutionReferenceDate)
@@ -92,6 +65,17 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
     const trend = calculateMovingAverage(points)
     return { points, trend, change: calculatePeriodChange(points, trend) }
   }, [evolutionPeriod, evolutionReferenceDate, measurements])
+  const weeklySummary = useMemo(() => {
+    const today = todayIsoLocal()
+    return createWeeklySummary({
+      range: getWeekRange(today, weekOffset),
+      today,
+      entries: loadEntries(activeUser.id),
+      activities: loadActivities(activeUser.id),
+      measurements,
+      goals,
+    })
+  }, [activeUser.id, goals, measurements, weekOffset])
 
   function openCreate() {
     setEditingId(null)
@@ -114,58 +98,6 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   function closeModal() {
     setModalOpen(false)
     setError('')
-  }
-
-  function openGoalsModal() {
-    setTargetWeightKg(goalValueToInput(goals.targetWeightKg))
-    setTargetWaistCm(goalValueToInput(goals.targetWaistCm))
-    setTargetProteinG(goalValueToInput(goals.targetProteinG))
-    setTargetCarbsG(goalValueToInput(goals.targetCarbsG))
-    setTargetFatG(goalValueToInput(goals.targetFatG))
-    setSex(goals.sex ?? '')
-    setBirthDate(goals.birthDate ?? '')
-    setHeightCm(goalValueToInput(goals.heightCm))
-    setTargetDeficitKcal(goalValueToInput(goals.targetDeficitKcal))
-    setGoalsError('')
-    setGoalsModalOpen(true)
-  }
-
-  function saveGoals() {
-    const nextGoals: UserGoals = {
-      targetWeightKg: parseGoalValue(targetWeightKg),
-      targetWaistCm: parseGoalValue(targetWaistCm),
-      targetCaloriesKcal: goals.targetCaloriesKcal,
-      targetProteinG: parseGoalValue(targetProteinG),
-      targetCarbsG: parseGoalValue(targetCarbsG),
-      targetFatG: parseGoalValue(targetFatG),
-      sex: sex || undefined,
-      birthDate: birthDate || undefined,
-      heightCm: parseGoalValue(heightCm),
-      targetDeficitKcal: parseGoalValue(targetDeficitKcal),
-    }
-    const validations: Array<[number | undefined, number, string]> = [
-      [nextGoals.targetWeightKg, 500, 'El peso objetivo debe ser un número positivo razonable.'],
-      [nextGoals.targetWaistCm, 250, 'La cintura objetivo debe ser un número positivo razonable.'],
-      [nextGoals.targetProteinG, 2000, 'Las proteínas diarias deben ser un valor positivo razonable.'],
-      [nextGoals.targetCarbsG, 2000, 'Los hidratos diarios deben ser un valor positivo razonable.'],
-      [nextGoals.targetFatG, 2000, 'Las grasas diarias deben ser un valor positivo razonable.'],
-      [nextGoals.heightCm, 300, 'La altura debe ser un valor positivo razonable.'],
-      [nextGoals.targetDeficitKcal, 5000, 'El déficit objetivo debe ser un valor positivo razonable.'],
-    ]
-    const invalid = validations.find(([value, maximum]) => value !== undefined && (Number.isNaN(value) || value <= 0 || value > maximum))
-    if (invalid) {
-      setGoalsError(invalid[2])
-      return
-    }
-
-    if (nextGoals.birthDate && getAgeAtDate(nextGoals.birthDate, todayIsoLocal()) === undefined) {
-      setGoalsError('La fecha de nacimiento debe ser válida y anterior a hoy.')
-      return
-    }
-
-    setGoals(nextGoals)
-    saveUserGoals(activeUser.id, nextGoals)
-    setGoalsModalOpen(false)
   }
 
   function saveMeasurement() {
@@ -211,37 +143,6 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   return (
     <section className="screen screen-progreso">
       <ScreenHeader title="PROGRESO" user={activeUser} onUserClick={onUserClick} />
-
-      <section className="goals-card">
-        <div className="goals-card__top">
-          <span className="goals-card__title">Objetivos</span>
-          <button className="goals-card__edit" type="button" onClick={openGoalsModal}>✎ Editar</button>
-        </div>
-        <div className="goals-card__list">
-          {goals.targetWeightKg !== undefined && <GoalRow label="Peso" value={formatGoalValue(goals.targetWeightKg, 'kg', 1)} />}
-          {goals.targetWaistCm !== undefined && <GoalRow label="Cintura" value={formatGoalValue(goals.targetWaistCm, 'cm', 1)} />}
-          {goals.targetDeficitKcal !== undefined && <GoalRow label="Déficit objetivo" value={formatGoalValue(goals.targetDeficitKcal, 'kcal/día')} />}
-          {goals.targetProteinG !== undefined && <GoalRow label="Proteínas" value={formatGoalValue(goals.targetProteinG, 'g')} />}
-          {goals.targetCarbsG !== undefined && <GoalRow label="Hidratos" value={formatGoalValue(goals.targetCarbsG, 'g')} />}
-          {goals.targetFatG !== undefined && <GoalRow label="Grasas" value={formatGoalValue(goals.targetFatG, 'g')} />}
-          {!hasVisibleGoals && <span className="goals-card__empty">Configura tus objetivos diarios.</span>}
-        </div>
-      </section>
-
-      <section className="physical-data-card">
-        <div className="goals-card__top">
-          <span className="goals-card__title">Datos físicos</span>
-          <button className="goals-card__edit" type="button" onClick={openGoalsModal}>✎ Editar</button>
-        </div>
-        <div className="goals-card__list">
-          {goals.sex !== undefined && <GoalRow label="Sexo" value={goals.sex === 'male' ? 'Hombre' : 'Mujer'} />}
-          {goals.birthDate && <GoalRow label="Fecha nacimiento" value={formatDate(goals.birthDate)} />}
-          {goals.heightCm !== undefined && <GoalRow label="Altura" value={formatGoalValue(goals.heightCm, 'cm', 1)} />}
-          {physicalWeight !== undefined && <GoalRow label="Peso actual" value={formatGoalValue(physicalWeight, 'kg', 1)} />}
-          {physicalBmr !== undefined && <GoalRow label="Metabolismo basal" value={formatGoalValue(Math.round(physicalBmr), 'kcal/día')} />}
-          {!goals.sex && !goals.birthDate && goals.heightCm === undefined && physicalWeight === undefined && <span className="goals-card__empty">Completa tus datos físicos para calcular tu gasto diario.</span>}
-        </div>
-      </section>
 
       <span className="progress-section-label">Estado actual</span>
       <section className="progress-summary">
@@ -299,6 +200,20 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
         </div>
         <EvolutionCard title="Peso" unit="kg" period={evolutionPeriod} points={weightEvolution.points} trend={weightEvolution.trend} change={weightEvolution.change} target={goals.targetWeightKg} />
         <EvolutionCard title="Cintura" unit="cm" period={evolutionPeriod} points={waistEvolution.points} trend={waistEvolution.trend} change={waistEvolution.change} target={goals.targetWaistCm} />
+      </section>
+
+      <span className="progress-section-label">Resumen semanal</span>
+      <section className="weekly-summary">
+        <div className="weekly-summary__navigation">
+          <button type="button" onClick={() => setWeekOffset((offset) => offset - 1)} aria-label="Semana anterior">‹</button>
+          <span>{formatWeekRange(weeklySummary.range)}</span>
+          <button type="button" onClick={() => setWeekOffset((offset) => Math.min(0, offset + 1))} disabled={weekOffset === 0} aria-label="Semana siguiente">›</button>
+        </div>
+        <WeeklyEnergyCard summary={weeklySummary} goals={goals} />
+        <WeeklyNutritionCard summary={weeklySummary} goals={goals} />
+        <WeeklyActivityCard summary={weeklySummary} />
+        <WeeklyBodyCard summary={weeklySummary} />
+        <WeeklyDays summary={weeklySummary} />
       </section>
 
       <section className="progress-history">
@@ -359,54 +274,8 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
         </div>
       )}
 
-      {goalsModalOpen && (
-        <div className="food-modal-backdrop">
-          <div className="food-modal goals-modal">
-            <div className="food-modal__top">
-              <span className="food-modal__title">Editar objetivos</span>
-              <button className="food-modal__close" onClick={() => setGoalsModalOpen(false)}>×</button>
-            </div>
-            <div className="food-modal__form goals-form">
-              <span className="goals-form__section-title">Datos físicos</span>
-              <label className="food-modal__label">Sexo</label>
-              <select className="food-modal__quantity" value={sex} onChange={(event) => setSex(event.target.value as UserGoals['sex'] | '')}>
-                <option value="">Opcional</option>
-                <option value="male">Hombre</option>
-                <option value="female">Mujer</option>
-              </select>
-              <label className="food-modal__label">Fecha de nacimiento</label>
-              <input className="food-modal__quantity" type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
-              <label className="food-modal__label">Altura (cm)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={heightCm} onChange={(event) => setHeightCm(event.target.value)} placeholder="Opcional" />
-
-              <span className="goals-form__section-title">Objetivos</span>
-              <label className="food-modal__label">Peso objetivo (kg)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetWeightKg} onChange={(event) => setTargetWeightKg(event.target.value)} placeholder="Opcional" />
-              <label className="food-modal__label">Cintura objetivo (cm)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetWaistCm} onChange={(event) => setTargetWaistCm(event.target.value)} placeholder="Opcional" />
-              <label className="food-modal__label">Déficit objetivo (kcal/día)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetDeficitKcal} onChange={(event) => setTargetDeficitKcal(event.target.value)} placeholder="Opcional" />
-              <label className="food-modal__label">Proteínas diarias (g)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetProteinG} onChange={(event) => setTargetProteinG(event.target.value)} placeholder="Opcional" />
-              <label className="food-modal__label">Hidratos diarios (g)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetCarbsG} onChange={(event) => setTargetCarbsG(event.target.value)} placeholder="Opcional" />
-              <label className="food-modal__label">Grasas diarias (g)</label>
-              <input className="food-modal__quantity" inputMode="decimal" value={targetFatG} onChange={(event) => setTargetFatG(event.target.value)} placeholder="Opcional" />
-              {goalsError && <span className="error-text">{goalsError}</span>}
-              <div className="food-modal__confirm">
-                <button className="secondary-button" onClick={() => setGoalsModalOpen(false)}>Cancelar</button>
-                <button className="primary-button" onClick={saveGoals}>Guardar</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
-}
-
-function GoalRow({ label, value }: { label: string; value: string }) {
-  return <div className="goals-card__row"><span>{label}</span><strong>{value}</strong></div>
 }
 
 function PeriodButton({ label, value, selected, onSelect }: { label: string; value: ProgressPeriod; selected: ProgressPeriod; onSelect: (period: ProgressPeriod) => void }) {
@@ -447,3 +316,65 @@ function formatSignedValue(value: number, unit: string) {
   const formatted = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(Math.abs(value))
   return `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatted} ${unit}`
 }
+
+function formatWeekRange(range: { start: string; end: string }) {
+  const start = new Date(`${range.start}T12:00:00`)
+  const end = new Date(`${range.end}T12:00:00`)
+  const startLabel = start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  const endLabel = end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+  return `${startLabel}–${endLabel}`
+}
+
+function WeeklyEnergyCard({ summary, goals }: { summary: WeekSummary; goals: UserGoals }) {
+  const target = goals.targetDeficitKcal === undefined ? undefined : goals.targetDeficitKcal * summary.dayCount
+  const percentage = target && target > 0 ? (summary.totalDeficit / target) * 100 : undefined
+  return <article className="weekly-card">
+    <span className="weekly-card__title">Balance energético</span>
+    <WeeklyRow label="Ingerido" value={formatKcal(summary.sum.kcal)} />
+    <WeeklyRow label="Gasto estimado" value={summary.calculated.length ? formatKcal(summary.totalExpenditure) : '—'} />
+    <WeeklyRow label={summary.totalDeficit >= 0 ? 'Déficit acumulado' : 'Superávit acumulado'} value={summary.calculated.length ? formatKcal(Math.abs(summary.totalDeficit)) : '—'} />
+    <WeeklyRow label="Media diaria" value={summary.calculated.length ? formatKcal(summary.totalDeficit / summary.calculated.length) : '—'} />
+    {target !== undefined && <><WeeklyRow label="Objetivo semanal" value={formatKcal(target)} /><div className="weekly-progress"><span style={{ width: `${Math.min(Math.max(percentage ?? 0, 0), 100)}%` }} /><strong>{new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(percentage ?? 0)}%</strong></div></>}
+  </article>
+}
+
+function WeeklyNutritionCard({ summary, goals }: { summary: WeekSummary; goals: UserGoals }) {
+  const divisor = summary.dayCount || 1
+  return <article className="weekly-card"><span className="weekly-card__title">Nutrición</span>
+    <WeeklyMacro label="Proteína" value={summary.sum.protein / divisor} target={goals.targetProteinG} />
+    <WeeklyMacro label="Hidratos" value={summary.sum.carbs / divisor} target={goals.targetCarbsG} />
+    <WeeklyMacro label="Grasas" value={summary.sum.fat / divisor} target={goals.targetFatG} />
+  </article>
+}
+
+function WeeklyActivityCard({ summary }: { summary: WeekSummary }) {
+  const activityCount = summary.days.reduce((total, day) => total + day.activities.length, 0)
+  const types = summary.days.flatMap((day) => day.activities).reduce<Record<string, number>>((total, activity) => ({ ...total, [activity.type]: (total[activity.type] ?? 0) + 1 }), {})
+  return <article className="weekly-card"><span className="weekly-card__title">Actividad</span>
+    <WeeklyRow label="Kcal activas" value={formatKcal(summary.sum.activeCalories)} /><WeeklyRow label="Media diaria" value={formatKcal(summary.sum.activeCalories / (summary.dayCount || 1))} /><WeeklyRow label="Actividades" value={String(activityCount)} />
+    {Object.entries(types).map(([type, count]) => <WeeklyRow key={type} label={type} value={`${count} sesiones`} />)}
+  </article>
+}
+
+function WeeklyBodyCard({ summary }: { summary: WeekSummary }) {
+  const values = (field: 'weightKg' | 'waistCm') => summary.weekMeasurements.filter((measurement) => measurement[field] !== undefined).sort((a, b) => a.date.localeCompare(b.date))
+  const weight = values('weightKg')
+  const waist = values('waistCm')
+  return <article className="weekly-card"><span className="weekly-card__title">Cambio corporal</span>
+    <WeeklyBodyRow label="Peso" values={weight.map((item) => item.weightKg!)} unit="kg" /><WeeklyBodyRow label="Cintura" values={waist.map((item) => item.waistCm!)} unit="cm" />
+  </article>
+}
+
+function WeeklyDays({ summary }: { summary: WeekSummary }) {
+  const labels = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+  return <article className="weekly-card weekly-days"><span className="weekly-card__title">Días</span><div>{labels.map((label, index) => {
+    const day = summary.days[index]
+    const balance = day?.energy?.estimatedDeficit
+    return <span key={label}><b>{label}</b><small>{balance === undefined ? '—' : `${balance >= 0 ? '-' : '+'}${Math.round(Math.abs(balance))}`}</small></span>
+  })}</div></article>
+}
+
+function WeeklyRow({ label, value }: { label: string; value: string }) { return <div className="weekly-card__row"><span>{label}</span><strong>{value}</strong></div> }
+function WeeklyMacro({ label, value, target }: { label: string; value: number; target?: number }) { const percent = target ? Math.round((value / target) * 100) : undefined; return <WeeklyRow label={label} value={target ? `${formatGoalValue(value, 'g')} / ${formatGoalValue(target, 'g')} · ${percent}%` : `${formatGoalValue(value, 'g')}/día`} /> }
+function WeeklyBodyRow({ label, values, unit }: { label: string; values: number[]; unit: string }) { if (!values.length) return <WeeklyRow label={label} value="Sin mediciones esta semana" />; if (values.length === 1) return <WeeklyRow label={label} value={formatGoalValue(values[0], unit, 1)} />; return <WeeklyRow label={label} value={`${formatGoalValue(values[0], unit, 1)} → ${formatGoalValue(values.at(-1)!, unit, 1)} · ${formatSignedValue(values.at(-1)! - values[0], unit)}`} /> }
+function formatKcal(value: number) { return `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(value))} kcal` }

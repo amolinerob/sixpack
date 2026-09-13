@@ -1,4 +1,4 @@
-export type SixPackIconName = 'home' | 'today' | 'foods' | 'meals' | 'progress'
+export type SixPackIconName = 'home' | 'today' | 'foods' | 'meals' | 'progress' | 'user'
 
 type Props = {
   name: SixPackIconName
@@ -22,6 +22,7 @@ export function SixPackIcon({ name, className }: Props) {
       {name === 'foods' && <><path {...common} d="M12 6.2c1.5-1 2.6-1.4 4.2-1.1 3.1.6 3.8 3.7 3.3 6.6-.7 5.1-3.6 8.3-7.5 8.3s-6.8-3.2-7.5-8.3c-.5-2.9.2-6 3.3-6.6 1.6-.3 2.7.1 4.2 1.1Z" /><path {...common} d="M12.2 5.7c.1-2 1.5-3.3 3.7-3.3.1 1.9-1.4 3.2-3.7 3.3Z" /><path {...common} d="m11.7 6.1-2.1-1.5" /></>}
       {name === 'meals' && <><circle {...common} cx="12" cy="12.5" r="6" /><circle {...common} cx="12" cy="12.5" r="3.9" /><path {...common} d="M4.5 3.5v6M2.5 3.5v3a2 2 0 0 0 4 0v-3M4.5 9.5v11M19.5 3.5c1.3 1.8 1.3 5.7 0 7.5v9.5" /></>}
       {name === 'progress' && <><rect {...common} x="4" y="13" width="3.4" height="7" rx="1.2" /><rect {...common} x="10.3" y="9" width="3.4" height="11" rx="1.2" /><rect {...common} x="16.6" y="4" width="3.4" height="16" rx="1.2" /></>}
+      {name === 'user' && <><circle {...common} cx="12" cy="8" r="3.5" /><path {...common} d="M4.5 20c.7-4 3.3-6 7.5-6s6.8 2 7.5 6" /></>}
     </svg>
   )
 }

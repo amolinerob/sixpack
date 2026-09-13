@@ -11,6 +11,7 @@ const navigationItems: Array<{ id: Screen; label: string; icon: SixPackIconName 
   { id: 'comidas', label: 'COMIDAS', icon: 'meals' },
   { id: 'alimentos', label: 'ALIMENTOS', icon: 'foods' },
   { id: 'progreso', label: 'PROGRESO', icon: 'progress' },
+  { id: 'usuario', label: 'USUARIO', icon: 'user' },
 ]
 
 export function BottomNavigation({ activeScreen, onNavigate }: Props) {

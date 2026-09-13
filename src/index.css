@@ -695,7 +695,7 @@ button {
 .macro-grid {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
@@ -1091,6 +1091,71 @@ button {
   width: 100%;
   min-height: 46px;
 }
+
+.weekly-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.weekly-summary__navigation {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--green-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.weekly-summary__navigation button {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--accent-strong);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.weekly-summary__navigation button:disabled { opacity: .35; }
+
+.weekly-card {
+  display: grid;
+  gap: 7px;
+  background: var(--panel);
+  border: 1px solid rgba(150, 170, 150, .3);
+  border-radius: 18px;
+  box-shadow: 0 6px 16px var(--shadow);
+  padding: 13px;
+}
+
+.weekly-card__title {
+  color: var(--green-strong);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.weekly-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.weekly-card__row strong { color: var(--text); font-size: 12px; text-align: right; }
+.weekly-progress { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+.weekly-progress::before { content: ''; grid-column: 1; grid-row: 1; height: 5px; border-radius: 999px; background: var(--accent-light); }
+.weekly-progress span { grid-column: 1; grid-row: 1; height: 5px; border-radius: 999px; background: var(--accent); }
+.weekly-progress strong { grid-column: 2; color: var(--text-soft); font-size: 10px; }
+
+.weekly-days > div { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.weekly-days span { display: grid; justify-items: center; gap: 3px; padding: 5px 0; border-radius: 8px; background: var(--sage-light); }
+.weekly-days b { color: var(--text-soft); font-size: 10px; }
+.weekly-days small { color: var(--text); font-size: 9px; font-weight: 800; }
 
 .evolution-period-selector button.is-selected {
   background: var(--panel);
@@ -1708,7 +1773,7 @@ button {
   border-top: 1px solid var(--line);
   box-shadow: 0 -8px 30px var(--shadow);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   align-items: center;
   z-index: 10;
 }
@@ -1751,7 +1816,7 @@ button {
 }
 
 .nav-item__label {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }

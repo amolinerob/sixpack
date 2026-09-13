@@ -4,6 +4,7 @@ import { AlimentosScreen } from './screens/AlimentosScreen'
 import { ComidasScreen } from './screens/ComidasScreen'
 import { HoyScreen } from './screens/HoyScreen'
 import { ProgresoScreen } from './screens/ProgresoScreen'
+import { UsuarioScreen } from './screens/UsuarioScreen'
 import { getActiveUser, migrateLegacyDataToAngel, setActiveUserId } from './storage'
 import { USERS, type Screen, type User } from './types'
 import { applyThemeToRoot, getThemeForUser } from './theme'
@@ -57,6 +58,7 @@ function App() {
             {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
             {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
             {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
+            {activeScreen === 'usuario' && <UsuarioScreen activeUser={activeUser} onUserClick={() => setShowUserSelector(true)} />}
           </>
         )}
       </main>

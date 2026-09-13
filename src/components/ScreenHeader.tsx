@@ -1,7 +1,7 @@
 import type { User } from '../types'
 
 type Props = {
-  title: 'HOY' | 'COMIDAS' | 'ALIMENTOS' | 'PROGRESO'
+  title: 'HOY' | 'COMIDAS' | 'ALIMENTOS' | 'PROGRESO' | 'USUARIO'
   user: User
   onUserClick?: () => void
 }
