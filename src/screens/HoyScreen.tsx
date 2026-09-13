@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { calculateDailyEnergyBalance } from '../energy'
 import type { FoodItem } from '../data/foods'
-import { getCombinedFoods, loadActivities, loadBodyMeasurements, loadEntries, loadSharedMeals, loadUserGoals, saveActivities, saveEntries } from '../storage'
-import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User } from '../types'
+import { activitiesRepository, diaryRepository, foodsRepository, goalsRepository, measurementsRepository, mealsRepository } from '../data/cloud/repositories'
+import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type BodyMeasurement, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User, type UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
-
-const foods = getCombinedFoods()
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -28,7 +26,7 @@ function getServingGramsInitial(food: FoodItem) {
   return null
 }
 
-function getFoodById(foodId: string) {
+function getFoodById(foodId: string, foods: FoodItem[]) {
   return foods.find((food) => food.id === foodId) ?? foods[0]
 }
 
@@ -47,7 +45,7 @@ function mealNutrition(ingredients: MealIngredient[], availableFoods: FoodItem[]
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0 })
 }
 
-function createMealSnapshot(meal: Meal): MealDiarySnapshot {
+function createMealSnapshot(meal: Meal, foods: FoodItem[]): MealDiarySnapshot {
   const nutrition = mealNutrition(meal.ingredients, foods)
   return {
     mealId: meal.id,
@@ -64,20 +62,25 @@ function createMealSnapshot(meal: Meal): MealDiarySnapshot {
 }
 
 export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeUser: User; onUserClick: () => void; onGoToProgress: () => void }) {
-  const [sharedMeals] = useState<Meal[]>(() => loadSharedMeals())
+  const [foods, setFoods] = useState<FoodItem[]>([])
+  const [sharedMeals, setSharedMeals] = useState<Meal[]>([])
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
-  const [entries, setEntries] = useState<FoodDiaryEntry[]>(() => loadEntries(activeUser.id))
-  const [activities, setActivities] = useState<ActivityEntry[]>(() => loadActivities(activeUser.id))
+  const [entries, setEntries] = useState<FoodDiaryEntry[]>([])
+  const [activities, setActivities] = useState<ActivityEntry[]>([])
+  const [goals, setGoals] = useState<UserGoals>({})
+  const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [activityModalOpen, setActivityModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null)
   const [searchName, setSearchName] = useState('')
-  const [selectedFoodId, setSelectedFoodId] = useState(foods[0]?.id ?? '')
-  const [selectedMealId, setSelectedMealId] = useState(() => loadSharedMeals()[0]?.id ?? '')
+  const [selectedFoodId, setSelectedFoodId] = useState('')
+  const [selectedMealId, setSelectedMealId] = useState('')
   const [entryKind, setEntryKind] = useState<'food' | 'meal'>('food')
   const [quantityGrams, setQuantityGrams] = useState<number>(
-    getServingGramsInitial(getFoodById(foods[0]?.id ?? '')) ?? 100,
+    100,
   )
   const [draftMeal, setDraftMeal] = useState<MealName>('Desayuno')
   const [activityType, setActivityType] = useState<ActivityType>('CrossFit')
@@ -86,13 +89,22 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
   const [activityNotes, setActivityNotes] = useState('')
 
   useEffect(() => {
-    setEntries(loadEntries(activeUser.id))
-    setActivities(loadActivities(activeUser.id))
+    let active = true
+    setLoading(true)
+    Promise.all([foodsRepository.list(activeUser.id), mealsRepository.list(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id), goalsRepository.get(activeUser.id), measurementsRepository.list(activeUser.id)])
+      .then(([nextFoods, nextMeals, nextEntries, nextActivities, nextGoals, nextMeasurements]) => {
+        if (!active) return
+        setFoods(nextFoods); setSharedMeals(nextMeals); setEntries(nextEntries); setActivities(nextActivities); setGoals(nextGoals); setMeasurements(nextMeasurements)
+        setSelectedFoodId((current) => current || nextFoods[0]?.id || ''); setSelectedMealId((current) => current || nextMeals[0]?.id || ''); setLoadError('')
+      })
+      .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudieron cargar los datos de hoy.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [activeUser.id])
 
   const selectedFood = useMemo(
-    () => foods.find((food) => food.id === selectedFoodId) ?? foods[0],
-    [selectedFoodId],
+    () => getFoodById(selectedFoodId, foods),
+    [foods, selectedFoodId],
   )
 
   const selectedSharedMeal = useMemo(
@@ -128,7 +140,6 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
   }, [dateEntries])
 
   const dailyMacroComparisons = useMemo(() => {
-    const goals = loadUserGoals(activeUser.id)
     return [
       { label: 'Proteínas', consumed: totals.protein, target: goals.targetProteinG, unit: 'g' },
       { label: 'Hidratos', consumed: totals.carbs, target: goals.targetCarbsG, unit: 'g' },
@@ -136,18 +147,18 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
     ].filter((comparison): comparison is DailyGoalComparison => (
       comparison.target !== undefined && comparison.target > 0
     ))
-  }, [activeUser.id, totals])
+  }, [goals, totals])
 
   const dailyEnergyBalance = useMemo(() => {
     return calculateDailyEnergyBalance({
-      goals: loadUserGoals(activeUser.id),
-      measurements: loadBodyMeasurements(activeUser.id),
+      goals,
+      measurements,
       referenceDate: selectedDate,
       consumedCalories: totals.kcal,
       activityCalories: activityTotal,
     })
-  }, [activeUser.id, activityTotal, selectedDate, totals.kcal])
-  const dailyGoals = useMemo(() => loadUserGoals(activeUser.id), [activeUser.id])
+  }, [activityTotal, goals, measurements, selectedDate, totals.kcal])
+  const dailyGoals = goals
 
   function openSelector(meal: MealName) {
     const food = foods[0]
@@ -169,7 +180,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
       setEntryKind('meal')
       setSelectedMealId(entry.mealSnapshot.mealId)
     } else {
-      const food = getFoodById(entry.foodId ?? '')
+      const food = getFoodById(entry.foodId ?? '', foods)
       setEntryKind('food')
       setSelectedFoodId(food.id)
       setQuantityGrams(entry.quantityGrams)
@@ -183,16 +194,17 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
   }
 
   function syncQuantityToSelectedFood(foodId: string, fallbackQuantity = 100) {
-    const food = getFoodById(foodId)
+    const food = getFoodById(foodId, foods)
     const serving = getServingGramsInitial(food)
     setSelectedFoodId(food.id)
     setQuantityGrams(serving ?? fallbackQuantity)
   }
 
-  function confirmEntry() {
+  async function confirmEntry() {
+    try {
     if (entryKind === 'meal') {
       if (!selectedSharedMeal) return
-      const snapshot = createMealSnapshot(selectedSharedMeal)
+      const snapshot = createMealSnapshot(selectedSharedMeal, foods)
       const mealValues = {
         entryType: 'meal' as const,
         foodId: undefined,
@@ -203,13 +215,15 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
         protein: snapshot.protein,
         carbs: snapshot.carbs,
         fat: snapshot.fat,
+        nameSnapshot: snapshot.name,
         mealSnapshot: snapshot,
       }
 
       if (editingId) {
-        const next = entries.map((entry) => entry.id === editingId ? { ...entry, ...mealValues } : entry)
-        setEntries(next)
-        saveEntries(activeUser.id, next)
+        const target = entries.find((entry) => entry.id === editingId)
+        if (!target) return
+        const saved = await diaryRepository.save(activeUser.id, { ...target, ...mealValues }, editingId)
+        setEntries((current) => current.map((entry) => entry.id === saved.id ? saved : entry))
       } else {
         const next: FoodDiaryEntry = {
           id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
@@ -217,16 +231,17 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
           createdAt: new Date().toISOString(),
           ...mealValues,
         }
-        const nextEntries = [...entries, next]
-        setEntries(nextEntries)
-        saveEntries(activeUser.id, nextEntries)
+        const { id: _id, ...values } = next
+        const saved = await diaryRepository.save(activeUser.id, values)
+        setEntries((current) => [...current, saved])
       }
 
       closeSelector()
       return
     }
 
-    const food = getFoodById(selectedFoodId)
+    const food = getFoodById(selectedFoodId, foods)
+    if (!food) return
     const quantity = Math.max(0, quantityGrams)
     const kcal = (food.kcal100g / 100) * quantity
     const protein = (food.protein100g / 100) * quantity
@@ -255,12 +270,13 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
           protein: round(protein),
           carbs: round(carbs),
           fat: round(fat),
+          nameSnapshot: food.name,
           mealSnapshot: undefined,
         }
       })
 
-      setEntries(next)
-      saveEntries(activeUser.id, next)
+      const saved = await diaryRepository.save(activeUser.id, next.find((entry) => entry.id === editingId)!, editingId)
+      setEntries((current) => current.map((entry) => entry.id === saved.id ? saved : entry))
     } else {
       const next: FoodDiaryEntry = {
         id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
@@ -274,21 +290,23 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
         protein: round(protein),
         carbs: round(carbs),
         fat: round(fat),
+        nameSnapshot: food.name,
         createdAt: new Date().toISOString(),
       }
 
-      const nextEntries = [...entries, next]
-      setEntries(nextEntries)
-      saveEntries(activeUser.id, nextEntries)
+      const { id: _id, ...values } = next
+      const saved = await diaryRepository.save(activeUser.id, values)
+      setEntries((current) => [...current, saved])
     }
 
     closeSelector()
+    } catch (reason) {
+      setLoadError(reason instanceof Error ? reason.message : 'No se pudo guardar la entrada del diario.')
+    }
   }
 
-  function deleteEntry(entryId: string) {
-    const next = entries.filter((entry) => entry.id !== entryId)
-    setEntries(next)
-    saveEntries(activeUser.id, next)
+  async function deleteEntry(entryId: string) {
+    try { await diaryRepository.remove(entryId); setEntries((current) => current.filter((entry) => entry.id !== entryId)) } catch (reason) { setLoadError(reason instanceof Error ? reason.message : 'No se pudo eliminar la entrada del diario.') }
   }
 
   function openActivityEditor(activity: ActivityEntry) {
@@ -300,13 +318,12 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
     setActivityModalOpen(true)
   }
 
-  function deleteActivity(activityId: string) {
-    const next = activities.filter((activity) => activity.id !== activityId)
-    setActivities(next)
-    saveActivities(activeUser.id, next)
+  async function deleteActivity(activityId: string) {
+    await activitiesRepository.remove(activityId)
+    setActivities((current) => current.filter((activity) => activity.id !== activityId))
   }
 
-  function confirmActivity() {
+  async function confirmActivity() {
     const cleanMinutes = Math.max(0, activityMinutes)
     const cleanCalories = Math.max(0, activityCalories)
 
@@ -326,8 +343,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
         }
       })
 
-      setActivities(next)
-      saveActivities(activeUser.id, next)
+      const saved = await activitiesRepository.save(activeUser.id, next.find((activity) => activity.id === editingActivityId)!, editingActivityId)
+      setActivities((current) => current.map((activity) => activity.id === saved.id ? saved : activity))
     } else {
       const next: ActivityEntry = {
         id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
@@ -339,9 +356,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
         createdAt: new Date().toISOString(),
       }
 
-      const nextActivities = [...activities, next]
-      setActivities(nextActivities)
-      saveActivities(activeUser.id, nextActivities)
+      const { id: _id, createdAt: _createdAt, ...values } = next
+      const saved = await activitiesRepository.save(activeUser.id, values)
+      setActivities((current) => [...current, saved])
     }
 
     setActivityModalOpen(false)
@@ -354,6 +371,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
   return (
     <section className="screen screen-hoy">
       <ScreenHeader title="HOY" user={activeUser} onUserClick={onUserClick} />
+      {loading && <span className="progress-card__empty">Cargando datos…</span>}
+      {loadError && <span className="error-text">{loadError}</span>}
       <section className="today-date-header">
         <div className="date-nav">
           <button className="date-nav__chevron" onClick={() => setSelectedDate(dateOffset(selectedDate, -1))}>‹</button>
@@ -413,7 +432,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
                   {mealEntries.map((entry) => {
                     const mealSnapshot = entry.entryType === 'meal' ? entry.mealSnapshot : undefined
                     const isMealEntry = mealSnapshot !== undefined
-                    const food = isMealEntry ? undefined : getFoodById(entry.foodId ?? '')
+                    const food = isMealEntry ? undefined : getFoodById(entry.foodId ?? '', foods)
                     return (
                       <button className="meal-entry" key={entry.id} type="button" onClick={() => openEditor(entry)}>
                         <span className="meal-entry__food">
@@ -666,10 +685,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
                 </div>
                 <div className="food-macro-table">
                   <div className="food-macro-table__row food-macro-table__row--head"><span>Ingredientes</span><span>{selectedSharedMeal.ingredients.length}</span></div>
-                  <div className="food-macro-table__row"><span>Kcal</span><span>{createMealSnapshot(selectedSharedMeal).kcal} kcal</span></div>
-                  <div className="food-macro-table__row"><span>Proteína</span><span>{createMealSnapshot(selectedSharedMeal).protein} g</span></div>
-                  <div className="food-macro-table__row"><span>Hidratos</span><span>{createMealSnapshot(selectedSharedMeal).carbs} g</span></div>
-                  <div className="food-macro-table__row"><span>Grasa</span><span>{createMealSnapshot(selectedSharedMeal).fat} g</span></div>
+                  <div className="food-macro-table__row"><span>Kcal</span><span>{createMealSnapshot(selectedSharedMeal, foods).kcal} kcal</span></div>
+                  <div className="food-macro-table__row"><span>Proteína</span><span>{createMealSnapshot(selectedSharedMeal, foods).protein} g</span></div>
+                  <div className="food-macro-table__row"><span>Hidratos</span><span>{createMealSnapshot(selectedSharedMeal, foods).carbs} g</span></div>
+                  <div className="food-macro-table__row"><span>Grasa</span><span>{createMealSnapshot(selectedSharedMeal, foods).fat} g</span></div>
                 </div>
                 <div className="food-modal__choice">
                   <label className="food-modal__label">Añadir a</label>

@@ -16,7 +16,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!nextSession) { setLoading(false); return }
     setLoading(true)
     const { data, error: profileError } = await supabase.from('profiles').select('id, display_name, legacy_user_key').eq('id', nextSession.user.id).single()
-    if (profileError || !data?.legacy_user_key) { setError(profileError ? 'No se pudo cargar el perfil autenticado.' : 'El perfil no tiene un usuario local asociado.'); setLoading(false); return }
+    if (profileError || !data) { setError('No se pudo cargar el perfil autenticado.'); setLoading(false); return }
     setError(null); setProfile(data); setLoading(false)
   }
   useEffect(() => {

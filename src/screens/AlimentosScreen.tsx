@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { foods as baseFoods, type FoodItem } from '../data/foods'
-import { deleteSharedFood, getCombinedFoods, saveFoodToShared } from '../storage'
+import type { FoodItem } from '../data/foods'
+import { foodsRepository } from '../data/cloud/repositories'
 import type { User } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
@@ -27,9 +27,11 @@ function parseDecimalFromSpanishInput(value: string): number {
 }
 
 export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
-  const [foods, setFoods] = useState<FoodItem[]>(() => getCombinedFoods())
+  const [foods, setFoods] = useState<FoodItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [searchName, setSearchName] = useState('')
-  const [selectedFoodId, setSelectedFoodId] = useState(() => getCombinedFoods()[0]?.id ?? '')
+  const [selectedFoodId, setSelectedFoodId] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
@@ -37,6 +39,15 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
   const [duplicateExistingId, setDuplicateExistingId] = useState<string | null>(null)
   const [duplicateMessage, setDuplicateMessage] = useState('')
   const [form, setForm] = useState(emptyForm)
+
+  useEffect(() => {
+    let active = true
+    foodsRepository.list(activeUser.id)
+      .then((next) => { if (active) { setFoods(next); setSelectedFoodId(next[0]?.id ?? ''); setLoadError('') } })
+      .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudieron cargar los alimentos.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [activeUser.id])
 
   const filteredFoods = useMemo(() => {
     return foods.filter((food) => food.name.toLowerCase().includes(searchName.toLowerCase()))
@@ -74,7 +85,7 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
     setDuplicateMessage('')
   }
 
-  function saveFoodFromForm(event?: FormEvent) {
+  async function saveFoodFromForm(event?: FormEvent) {
     event?.preventDefault()
 
     const numeric = {
@@ -103,35 +114,34 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
     }
 
     const existing = foods.find((food) => food.id === editingId)
-    const base = baseFoods.find((food) => food.id === editingId)
-    const source = existing ?? base
+    const servingGrams = Number(form.servingHabitual.trim().replace(',', '.').match(/[0-9.]+/)?.[0])
 
     const payload: FoodItem = {
-      id: editingId ?? `custom-${Date.now()}-${Math.round(Math.random() * 10000)}`,
+      id: editingId ?? '',
       name: form.name.trim(),
       brand: form.brand.trim(),
       servingHabitual: form.servingHabitual.trim(),
-      servingUnit: source?.servingUnit ?? null,
-      servingGrams: source?.servingGrams ?? null,
+      servingUnit: existing?.servingUnit ?? 'g',
+      servingGrams: Number.isFinite(servingGrams) && servingGrams > 0 ? servingGrams : null,
       kcal100g: numeric.kcal100g,
       protein100g: numeric.protein100g,
       carbs100g: numeric.carbs100g,
       fat100g: numeric.fat100g,
     }
 
-    saveFoodToShared(payload)
-
-    const nextFoods = getCombinedFoods()
-    setFoods(nextFoods)
-    setSelectedFoodId(payload.id)
-    setModalOpen(false)
-    setDuplicateExistingId(null)
-    setDuplicateMessage('')
+    try {
+      const saved = await foodsRepository.save(activeUser.id, payload, editingId ?? undefined)
+      setFoods((current) => editingId ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved])
+      setSelectedFoodId(saved.id)
+      setModalOpen(false)
+      setDuplicateExistingId(null)
+      setDuplicateMessage('')
+    } catch (reason) { setDuplicateMessage(reason instanceof Error ? reason.message : 'No se pudo guardar el alimento.') }
   }
 
   function deleteFood(foodId: string) {
     const food = foods.find((item) => item.id === foodId)
-    if (!food || baseFoods.some((base) => base.id === food.id)) {
+    if (!food) {
       return
     }
 
@@ -139,22 +149,23 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
     setShowDeleteConfirm(food.id)
   }
 
-  function confirmDelete(foodId: string) {
+  async function confirmDelete(foodId: string) {
     if (deleteConfirmationStep !== 2) {
       return
     }
 
     const food = foods.find((item) => item.id === foodId)
-    if (!food || baseFoods.some((base) => base.id === food.id)) {
+    if (!food) {
       return
     }
 
-    deleteSharedFood(food.id)
-    const next = getCombinedFoods()
-    setFoods(next)
-    const nextSelected = next.find((item) => item.id !== food.id) ?? next[0]
-    setSelectedFoodId(nextSelected?.id ?? '')
-    setShowDeleteConfirm(null)
+    try {
+      await foodsRepository.remove(food.id)
+      const next = foods.filter((item) => item.id !== food.id)
+      setFoods(next)
+      setSelectedFoodId(next[0]?.id ?? '')
+      setShowDeleteConfirm(null)
+    } catch (reason) { setDuplicateMessage(reason instanceof Error ? reason.message : 'No se pudo eliminar el alimento.') }
   }
 
   function cancelDelete() {
@@ -183,6 +194,8 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
             </div>
 
             <div className="food-list">
+              {loading && <span className="progress-card__empty">Cargando alimentos…</span>}
+              {loadError && <span className="error-text">{loadError}</span>}
               {filteredFoods.length === 0 && (
                 <div className="empty-state-block">
                   <div className="empty-state-block__icon">+</div>
@@ -209,7 +222,7 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
                   </button>
                   <span className="food-row__actions" style={{ display: 'flex', flex: '0 0 auto', alignItems: 'center', gap: 4 }}>
                     <button className="food-row__icon" title="Editar" aria-label="Editar" onClick={() => openEditModal(food)}>✎</button>
-                    {baseFoods.every((base) => base.id !== food.id) && (
+                    {(
                       <button className="food-row__icon food-row__icon--danger" title="Eliminar" aria-label="Eliminar" onClick={() => deleteFood(food.id)}>🗑</button>
                     )}
                   </span>

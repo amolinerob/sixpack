@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ProgressChart } from '../components/ProgressChart'
 import { calculateMovingAverage, calculatePeriodChange, filterPointsByPeriod, getMeasurementPoints, type ProgressPeriod } from '../progressSeries'
 import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySummary'
-import { loadActivities, loadBodyMeasurements, loadEntries, loadUserGoals, saveBodyMeasurements } from '../storage'
-import type { BodyMeasurement, User, UserGoals } from '../types'
+import { activitiesRepository, diaryRepository, goalsRepository, measurementsRepository } from '../data/cloud/repositories'
+import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
 function todayIsoLocal(date = new Date()) {
@@ -35,8 +35,12 @@ function formatGoalValue(value: number, unit: string, minimumFractionDigits = 0)
 }
 
 export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
-  const [measurements, setMeasurements] = useState<BodyMeasurement[]>(() => loadBodyMeasurements(activeUser.id))
-  const [goals] = useState<UserGoals>(() => loadUserGoals(activeUser.id))
+  const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
+  const [goals, setGoals] = useState<UserGoals>({})
+  const [entries, setEntries] = useState<FoodDiaryEntry[]>([])
+  const [activities, setActivities] = useState<ActivityEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [date, setDate] = useState(todayIsoLocal())
@@ -45,6 +49,16 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const [error, setError] = useState('')
   const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1m')
   const [weekOffset, setWeekOffset] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    Promise.all([measurementsRepository.list(activeUser.id), goalsRepository.get(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id)])
+      .then(([nextMeasurements, nextGoals, nextEntries, nextActivities]) => { if (active) { setMeasurements(nextMeasurements); setGoals(nextGoals); setEntries(nextEntries); setActivities(nextActivities); setLoadError('') } })
+      .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudo cargar el progreso.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [activeUser.id])
 
   const sorted = useMemo(() => {
     return [...measurements].sort((a, b) => b.date.localeCompare(a.date))
@@ -70,12 +84,12 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
     return createWeeklySummary({
       range: getWeekRange(today, weekOffset),
       today,
-      entries: loadEntries(activeUser.id),
-      activities: loadActivities(activeUser.id),
+      entries,
+      activities,
       measurements,
       goals,
     })
-  }, [activeUser.id, goals, measurements, weekOffset])
+  }, [activities, entries, goals, measurements, weekOffset])
 
   function openCreate() {
     setEditingId(null)
@@ -100,7 +114,7 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
     setError('')
   }
 
-  function saveMeasurement() {
+  async function saveMeasurement() {
     const weightValue = weightKg.trim() === '' ? undefined : Number(weightKg)
     const waistValue = waistCm.trim() === '' ? undefined : Number(waistCm)
 
@@ -119,30 +133,27 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
       return
     }
 
-    const payload: BodyMeasurement = {
-      id: editingId ?? `${Date.now()}-${Math.round(Math.random() * 10000)}`,
-      userId: activeUser.id,
+    const payload = {
       date,
       weightKg: weightValue,
       waistCm: waistValue,
-      createdAt: new Date().toISOString(),
     }
-
-    const next = editingId ? measurements.map((item) => item.id === editingId ? payload : item) : [...measurements, payload]
-    setMeasurements(next)
-    saveBodyMeasurements(activeUser.id, next)
-    closeModal()
+    try {
+      const saved = await measurementsRepository.save(activeUser.id, payload, editingId ?? undefined)
+      setMeasurements((current) => editingId ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved])
+      closeModal()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo guardar la medición.') }
   }
 
-  function deleteMeasurement(id: string) {
-    const next = measurements.filter((item) => item.id !== id)
-    setMeasurements(next)
-    saveBodyMeasurements(activeUser.id, next)
+  async function deleteMeasurement(id: string) {
+    try { await measurementsRepository.remove(id); setMeasurements((current) => current.filter((item) => item.id !== id)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo eliminar la medición.') }
   }
 
   return (
     <section className="screen screen-progreso">
       <ScreenHeader title="PROGRESO" user={activeUser} onUserClick={onUserClick} />
+      {loading && <span className="progress-card__empty">Cargando progreso…</span>}
+      {loadError && <span className="error-text">{loadError}</span>}
 
       <span className="progress-section-label">Estado actual</span>
       <section className="progress-summary">

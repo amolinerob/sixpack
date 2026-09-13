@@ -28,6 +28,8 @@ export type FoodDiaryEntry = {
   protein: number
   carbs: number
   fat: number
+  /** Nombre congelado al registrar la entrada; no debe cambiar con el catálogo. */
+  nameSnapshot?: string
   createdAt: string
   mealSnapshot?: MealDiarySnapshot
 }

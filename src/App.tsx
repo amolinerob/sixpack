@@ -14,12 +14,11 @@ function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('hoy')
   const { user, profile, legacyUserKey, loading, error, signOut } = useAuth()
   const activeUser = useMemo<User | undefined>(() => {
-    if (!legacyUserKey) return undefined
-    const localUser = USERS.find((candidate) => candidate.id === legacyUserKey)
-    return localUser ? { ...localUser, name: profile?.display_name ?? localUser.name } : undefined
-  }, [legacyUserKey, profile?.display_name])
+    if (!profile) return undefined
+    return { id: profile.id, name: profile.display_name ?? 'Usuario' }
+  }, [profile])
 
-  const theme = useMemo(() => getThemeForUser(activeUser), [activeUser])
+  const theme = useMemo(() => getThemeForUser(USERS.find((candidate) => candidate.id === legacyUserKey) ?? activeUser), [activeUser, legacyUserKey])
 
   useEffect(() => {
     applyThemeToRoot(theme)

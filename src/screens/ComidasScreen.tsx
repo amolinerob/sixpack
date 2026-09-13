@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { FoodItem } from '../data/foods'
-import { createSharedMeal, deleteSharedMeal, getCombinedFoods, loadSharedMeals, updateSharedMeal } from '../storage'
+import { foodsRepository, mealsRepository } from '../data/cloud/repositories'
 import type { Meal, MealIngredient, MealIngredientUnit, User } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
@@ -53,14 +53,26 @@ function MacroSummary({ nutrition }: { nutrition: MealNutrition }) {
 }
 
 export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
-  const [foods] = useState<FoodItem[]>(() => getCombinedFoods())
-  const [meals, setMeals] = useState<Meal[]>(() => loadSharedMeals())
+  const [foods, setFoods] = useState<FoodItem[]>([])
+  const [meals, setMeals] = useState<Meal[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<MealForm>(emptyForm)
   const [error, setError] = useState('')
   const [deleteMealId, setDeleteMealId] = useState<string | null>(null)
   const [deleteConfirmationStep, setDeleteConfirmationStep] = useState<1 | 2>(1)
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    Promise.all([foodsRepository.list(activeUser.id), mealsRepository.list(activeUser.id)])
+      .then(([nextFoods, nextMeals]) => { if (active) { setFoods(nextFoods); setMeals(nextMeals); setLoadError('') } })
+      .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudieron cargar las comidas.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [activeUser.id])
 
   const previewNutrition = useMemo(() => {
     const ingredients = form.ingredients.flatMap((ingredient): MealIngredient[] => {
@@ -101,7 +113,7 @@ export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; o
     setForm((current) => ({ ...current, ingredients: current.ingredients.filter((_, itemIndex) => itemIndex !== index) }))
   }
 
-  function saveMeal(event?: FormEvent) {
+  async function saveMeal(event?: FormEvent) {
     event?.preventDefault()
     const ingredients = form.ingredients.map<MealIngredient | null>((ingredient) => {
       const quantity = parseDecimal(ingredient.quantity)
@@ -117,20 +129,16 @@ export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; o
       return
     }
 
-    const meal: Meal = {
-      id: editingId ?? `meal-${Date.now()}-${Math.round(Math.random() * 10000)}`,
+    const meal = {
       name: form.name.trim(),
       description: form.description.trim() || undefined,
       ingredients: ingredients as MealIngredient[],
     }
-    if (editingId) {
-      updateSharedMeal(meal)
-      setMeals((current) => current.map((item) => item.id === meal.id ? meal : item))
-    } else {
-      createSharedMeal(meal)
-      setMeals((current) => [...current, meal])
-    }
-    closeModal()
+    try {
+      const saved = await mealsRepository.save(activeUser.id, meal, editingId ?? undefined)
+      setMeals((current) => editingId ? current.map((item) => item.id === saved.id ? saved : item) : [...current, saved])
+      closeModal()
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo guardar la comida.') }
   }
 
   function requestDelete(mealId: string) {
@@ -143,18 +151,17 @@ export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; o
     setDeleteConfirmationStep(1)
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteMealId || deleteConfirmationStep !== 2) return
-    deleteSharedMeal(deleteMealId)
-    setMeals((current) => current.filter((meal) => meal.id !== deleteMealId))
-    cancelDelete()
+    try { await mealsRepository.remove(deleteMealId); setMeals((current) => current.filter((meal) => meal.id !== deleteMealId)); cancelDelete() } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo eliminar la comida.') }
   }
 
   return <section className="screen screen-comidas">
     <ScreenHeader title="COMIDAS" user={activeUser} onUserClick={onUserClick} />
     <section className="meals-panel">
       <div className="meals-panel__header"><span className="meals-panel__title">Mis comidas</span><button className="primary-button" onClick={openCreate}>+ Añadir comida</button></div>
-      <div className="meals-list">
+      {loadError && <span className="error-text">{loadError}</span>}<div className="meals-list">
+        {loading && <span className="progress-card__empty">Cargando comidas…</span>}
         {meals.length === 0 ? <div className="empty-state-block"><div className="empty-state-block__icon">+</div><div className="empty-state-block__body"><span className="empty-state-block__title">Sin comidas</span><span className="empty-state-block__text">Crea una receta reutilizable con tus alimentos.</span></div></div> : meals.map((meal) => {
           const nutrition = nutritionFor(meal.ingredients, foods)
           return <article className="meal-recipe-card" key={meal.id}>

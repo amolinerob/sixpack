@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { calculateBmr, getAgeAtDate, getLatestWeightForDate } from '../energy'
-import { loadBodyMeasurements, loadUserGoals, saveUserGoals } from '../storage'
-import type { User, UserGoals } from '../types'
+import { goalsRepository, measurementsRepository, profileRepository } from '../data/cloud/repositories'
+import type { BodyMeasurement, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { useAuth } from '../auth/AuthProvider'
 import { migrateLocalData, reviewLocalMigration, type MigrationResult, type MigrationReview } from '../migration/localToSupabase'
@@ -12,7 +12,9 @@ function format(value: number, unit: string) { return `${new Intl.NumberFormat('
 function parse(value: string) { return value.trim() === '' ? undefined : Number(value.trim().replace(',', '.')) }
 
 export function UsuarioScreen({ activeUser, onUserClick, onSignOut }: { activeUser: User; onUserClick: () => void; onSignOut: () => void }) {
-  const [goals, setGoals] = useState<UserGoals>(() => loadUserGoals(activeUser.id))
+  const [goals, setGoals] = useState<UserGoals>({})
+  const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
+  const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState<Record<string, string>>({})
@@ -22,26 +24,37 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut }: { activeUs
   const [migrating, setMigrating] = useState(false)
   const { profile, legacyUserKey } = useAuth()
   const today = todayIsoLocal()
-  const weight = getLatestWeightForDate(loadBodyMeasurements(activeUser.id), today)
+  const weight = getLatestWeightForDate(measurements, today)
   const age = getAgeAtDate(goals.birthDate, today)
   const bmr = weight !== undefined && age !== undefined && goals.heightCm !== undefined ? calculateBmr({ sex: goals.sex, weightKg: weight, heightCm: goals.heightCm, age }) : undefined
   const rows = (items: Array<[string, string | undefined]>) => items.map(([label, value]) => value && <div className="goals-card__row" key={label}><span>{label}</span><strong>{value}</strong></div>)
+  useEffect(() => {
+    let active = true
+    Promise.all([goalsRepository.get(activeUser.id), measurementsRepository.list(activeUser.id), profileRepository.get(activeUser.id)])
+      .then(([cloudGoals, cloudMeasurements, cloudProfile]) => { if (active) { setGoals({ ...cloudGoals, sex: cloudProfile.sex, birthDate: cloudProfile.birthDate, heightCm: cloudProfile.heightCm }); setMeasurements(cloudMeasurements) } })
+      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : 'No se pudieron cargar los datos del usuario.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [activeUser.id])
   function openEdit() { setForm({ sex: goals.sex ?? '', birthDate: goals.birthDate ?? '', heightCm: goals.heightCm?.toString() ?? '', targetWeightKg: goals.targetWeightKg?.toString() ?? '', targetWaistCm: goals.targetWaistCm?.toString() ?? '', targetDeficitKcal: goals.targetDeficitKcal?.toString() ?? '', targetProteinG: goals.targetProteinG?.toString() ?? '', targetCarbsG: goals.targetCarbsG?.toString() ?? '', targetFatG: goals.targetFatG?.toString() ?? '' }); setError(''); setEditing(true) }
-  function save() {
+  async function save() {
     const next: UserGoals = { ...goals, sex: form.sex as UserGoals['sex'] || undefined, birthDate: form.birthDate || undefined, heightCm: parse(form.heightCm), targetWeightKg: parse(form.targetWeightKg), targetWaistCm: parse(form.targetWaistCm), targetDeficitKcal: parse(form.targetDeficitKcal), targetProteinG: parse(form.targetProteinG), targetCarbsG: parse(form.targetCarbsG), targetFatG: parse(form.targetFatG) }
     const values = [next.heightCm, next.targetWeightKg, next.targetWaistCm, next.targetDeficitKcal, next.targetProteinG, next.targetCarbsG, next.targetFatG]
     if (values.some((value) => value !== undefined && (!Number.isFinite(value) || value <= 0))) { setError('Introduce valores positivos válidos.'); return }
     if (next.birthDate && getAgeAtDate(next.birthDate, today) === undefined) { setError('La fecha de nacimiento debe ser válida y anterior a hoy.'); return }
-    setGoals(next); saveUserGoals(activeUser.id, next); setEditing(false)
+    try {
+      await Promise.all([profileRepository.update(activeUser.id, { sex: next.sex, birthDate: next.birthDate, heightCm: next.heightCm }), goalsRepository.save(activeUser.id, next)])
+      setGoals(next); setEditing(false)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudieron guardar los datos.') }
   }
-  function reviewMigration() { setMigrationReview(reviewLocalMigration(activeUser.id)); setMigrationResult(null); setMigrationError(null) }
+  function reviewMigration() { setMigrationReview(reviewLocalMigration(legacyUserKey ?? activeUser.id)); setMigrationResult(null); setMigrationError(null) }
   async function runMigration() {
     if (!profile?.id || !legacyUserKey || !window.confirm('Se copiarán los datos locales a Supabase. Los datos locales no se borrarán. ¿Continuar?')) return
     setMigrating(true); setMigrationError(null)
     try { setMigrationResult(await migrateLocalData({ userId: profile.id, legacyUserKey })) } catch { setMigrationError('No se pudo iniciar la migración.') } finally { setMigrating(false) }
   }
   return <section className="screen screen-usuario">
-    <ScreenHeader title="USUARIO" user={activeUser} onUserClick={onUserClick} />
+    <ScreenHeader title="USUARIO" user={activeUser} onUserClick={onUserClick} />{loading && <span className="progress-card__empty">Cargando usuario…</span>}
     <section className="physical-data-card"><div className="goals-card__top"><span className="goals-card__title">Datos físicos</span><button className="goals-card__edit" onClick={openEdit}>Editar datos físicos</button></div><div className="goals-card__list">{rows([['Sexo', goals.sex === 'male' ? 'Hombre' : goals.sex === 'female' ? 'Mujer' : undefined], ['Fecha nacimiento', goals.birthDate ? formatDate(goals.birthDate) : undefined], ['Altura', goals.heightCm !== undefined ? format(goals.heightCm, 'cm') : undefined], ['Peso actual', weight !== undefined ? format(weight, 'kg') : undefined], ['Metabolismo basal', bmr !== undefined ? format(Math.round(bmr), 'kcal/día') : undefined]])}</div></section>
     <section className="goals-card"><div className="goals-card__top"><span className="goals-card__title">Objetivos</span><button className="goals-card__edit" onClick={openEdit}>Editar objetivos</button></div><div className="goals-card__list">{rows([['Peso', goals.targetWeightKg !== undefined ? format(goals.targetWeightKg, 'kg') : undefined], ['Cintura', goals.targetWaistCm !== undefined ? format(goals.targetWaistCm, 'cm') : undefined], ['Déficit', goals.targetDeficitKcal !== undefined ? format(goals.targetDeficitKcal, 'kcal/día') : undefined], ['Proteína', goals.targetProteinG !== undefined ? format(goals.targetProteinG, 'g/día') : undefined], ['Hidratos', goals.targetCarbsG !== undefined ? format(goals.targetCarbsG, 'g/día') : undefined], ['Grasas', goals.targetFatG !== undefined ? format(goals.targetFatG, 'g/día') : undefined]])}</div></section>
     <section className="goals-card cloud-migration">
