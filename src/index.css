@@ -450,7 +450,7 @@ button {
   display: flex;
   min-width: 0;
   flex: 1 1 auto;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 6px 0;
   border: 0;
@@ -459,7 +459,14 @@ button {
   text-align: left;
 }
 
+.meal-entry__details {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
 .meal-entry__food {
+  min-width: 0;
   color: var(--green-strong);
   font-size: 13px;
   font-weight: 800;
@@ -479,6 +486,7 @@ button {
 }
 
 .meal-entry__meta {
+  display: block;
   color: var(--text-soft);
   font-size: 11px;
 }

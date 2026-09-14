@@ -461,13 +461,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                     return (
                       <article className="meal-entry" key={entry.id}>
                         <button className="meal-entry__content" type="button" onClick={() => openEditor(entry)} aria-label={`Editar ${entry.nameSnapshot ?? entry.mealSnapshot?.name ?? 'entrada del diario'}`}>
-                          <span className="meal-entry__food">
-                          {mealSnapshot ? <><span className="meal-entry__kind">Comida</span>{mealSnapshot.name}</> : food?.name}
-                        </span>
-                          <span className="meal-entry__meta">
-                          {isMealEntry
-                            ? ` · ${round(entry.kcal)} kcal · P ${round(entry.protein)} g · H ${round(entry.carbs)} g · G ${round(entry.fat)} g`
-                            : ` · ${round(entry.quantityGrams)} g · ${round(entry.kcal)} kcal`}
+                          <span className="meal-entry__kind">{entry.entryType === 'meal' ? 'C' : 'A'}</span>
+                          <span className="meal-entry__details">
+                            <span className="meal-entry__food">{mealSnapshot ? mealSnapshot.name : food?.name}</span>
+                            <span className="meal-entry__meta">{round(entry.kcal)} kcal · {round(entry.protein)} P · {round(entry.carbs)} HC · {round(entry.fat)} G</span>
                           </span>
                         </button>
                         <span className="meal-entry__action-strip">
