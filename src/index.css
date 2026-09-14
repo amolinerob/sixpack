@@ -207,6 +207,117 @@ button {
   margin-top: 12px;
 }
 
+.daily-balance-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.daily-balance-card__list {
+  margin-top: 0;
+}
+
+.daily-balance-card__ring {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.goal-progress-ring {
+  --goal-ring-color: #d9534f;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+}
+
+.goal-progress-ring--large {
+  width: 94px;
+  height: 94px;
+}
+
+.goal-progress-ring svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.goal-progress-ring circle {
+  fill: none;
+  stroke-width: 8;
+}
+
+.goal-progress-ring__track {
+  stroke: var(--accent-light);
+}
+
+.goal-progress-ring__value {
+  stroke: var(--goal-ring-color);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms ease;
+}
+
+.goal-progress-ring strong {
+  position: relative;
+  color: var(--goal-ring-color);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.goal-progress-ring--large strong {
+  font-size: 18px;
+}
+
+.goal-progress-ring--yellow { --goal-ring-color: #bd8a22; }
+.goal-progress-ring--green { --goal-ring-color: var(--accent-strong); }
+
+.daily-goals-card__macro-rings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.daily-goals-card__macro-ring {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.daily-goals-card__macro-ring > strong {
+  max-width: 100%;
+  color: var(--text);
+  font-size: 10px;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-transform: none;
+}
+
+@media (max-width: 350px) {
+  .daily-balance-card { gap: 10px; }
+  .goal-progress-ring--large { width: 82px; height: 82px; }
+  .goal-progress-ring { width: 56px; height: 56px; }
+  .daily-goals-card__macro-rings { gap: 4px; }
+}
+
 .daily-balance-card__row {
   display: flex;
   align-items: center;
@@ -324,15 +435,27 @@ button {
 .meal-entry {
   width: 100%;
   margin-top: 6px;
-  border: none;
   background: var(--sage-light);
   color: var(--text);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 4px 4px 4px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
   justify-content: flex-start;
+  text-align: left;
+}
+
+.meal-entry__content {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   text-align: left;
 }
 
@@ -367,20 +490,6 @@ button {
   gap: 8px;
 }
 
-.meal-entry__edit,
-.meal-entry__delete {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--green-strong);
-  line-height: 1;
-  padding: 4px 6px;
-  border-radius: 10px;
-  background: transparent;
-}
-
-.meal-entry__delete {
-  color: var(--text-muted);
-}
 
 .app-user-strip {
   display: flex;
@@ -666,6 +775,23 @@ button {
   border: none;
   min-height: 44px;
   font-weight: 800;
+}
+
+.danger-button {
+  min-width: 120px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  background: #b74343;
+  color: #fff;
+  font-weight: 800;
+}
+
+.confirm-dialog__message {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .primary-button {
@@ -1347,9 +1473,35 @@ button {
   border-radius: 10px;
 }
 
+.icon-button svg {
+  display: block;
+}
+
 .icon-button--danger {
   color: var(--text-muted);
 }
+
+.icon-action-button {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--green-strong);
+}
+
+.icon-action-button--danger { color: var(--text-muted); }
+.icon-action-button:hover { background: var(--accent-light); }
+.icon-action-button:active { transform: scale(.96); }
+.icon-action-button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.icon-action-button svg { display: block; width: 22px; height: 22px; }
 
 .food-modal__form {
   display: flex;
@@ -1406,6 +1558,37 @@ button {
 }
 
 .measurement-form__field input[type='date']::-webkit-datetime-edit {
+  padding: 0;
+  text-align: left;
+}
+
+/* El campo de nacimiento comparte la base del modal, pero Safari/iOS centra su control interno. */
+.goals-form > input.food-modal__quantity[type='date'] {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.goals-form > input.food-modal__quantity[type='date']::-webkit-date-and-time-value {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.goals-form > input.food-modal__quantity[type='date']::-webkit-datetime-edit {
   padding: 0;
   text-align: left;
 }

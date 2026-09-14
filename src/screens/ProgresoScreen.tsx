@@ -5,6 +5,8 @@ import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySu
 import { activitiesRepository, diaryRepository, goalsRepository, measurementsRepository } from '../data/cloud/repositories'
 import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { IconActionButton } from '../components/ActionIcon'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -49,6 +51,7 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const [error, setError] = useState('')
   const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1m')
   const [weekOffset, setWeekOffset] = useState(0)
+  const [pendingMeasurementDeleteId, setPendingMeasurementDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -146,7 +149,16 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   }
 
   async function deleteMeasurement(id: string) {
-    try { await measurementsRepository.remove(id); setMeasurements((current) => current.filter((item) => item.id !== id)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo eliminar la medición.') }
+    try {
+      await measurementsRepository.remove(id)
+      setMeasurements((current) => current.filter((item) => item.id !== id))
+      return true
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo eliminar la medición.'); return false }
+  }
+
+  async function confirmMeasurementDelete() {
+    if (!pendingMeasurementDeleteId) return
+    if (await deleteMeasurement(pendingMeasurementDeleteId)) setPendingMeasurementDeleteId(null)
   }
 
   return (
@@ -241,8 +253,8 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
                 <span className="progress-history__value">{item.weightKg ? `${roundValue(item.weightKg)} kg` : '—'}</span>
                 <span className="progress-history__value">{item.waistCm ? `${roundValue(item.waistCm)} cm` : '—'}</span>
                 <span className="progress-history__actions">
-                  <button className="icon-button" onClick={() => openEdit(item)} aria-label="Editar medición" title="Editar">✎</button>
-                  <button className="icon-button icon-button--danger" onClick={() => deleteMeasurement(item.id)} aria-label="Eliminar medición" title="Eliminar">🗑</button>
+                  <IconActionButton name="edit" ariaLabel="Editar medición" onClick={() => openEdit(item)} />
+                  <IconActionButton name="delete" ariaLabel="Eliminar medición" onClick={() => { setError(''); setPendingMeasurementDeleteId(item.id) }} />
                 </span>
               </div>
             ))
@@ -284,6 +296,13 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
           </div>
         </div>
       )}
+      {pendingMeasurementDeleteId && <ConfirmDialog
+        title="Confirmar eliminación"
+        message="¿Seguro que quieres eliminar esta medición de peso/cintura?"
+        error={error}
+        onCancel={() => setPendingMeasurementDeleteId(null)}
+        onConfirm={() => void confirmMeasurementDelete()}
+      />}
 
     </section>
   )

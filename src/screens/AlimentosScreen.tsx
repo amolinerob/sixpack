@@ -4,6 +4,7 @@ import type { FoodItem } from '../data/foods'
 import { foodsRepository } from '../data/cloud/repositories'
 import type { User } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { IconActionButton } from '../components/ActionIcon'
 
 function normalizeFoodName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -14,16 +15,16 @@ function emptyForm() {
     name: '',
     brand: '',
     servingHabitual: '',
-    kcal100g: '0',
-    protein100g: '0',
-    carbs100g: '0',
-    fat100g: '0',
+    kcal100g: '',
+    protein100g: '',
+    carbs100g: '',
+    fat100g: '',
   }
 }
 
 function parseDecimalFromSpanishInput(value: string): number {
   const normalized = value.trim().replace(',', '.')
-  return Number(normalized)
+  return normalized === '' ? 0 : Number(normalized)
 }
 
 export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {
@@ -221,9 +222,9 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
                     <span className="food-row__name">{food.name}</span>
                   </button>
                   <span className="food-row__actions" style={{ display: 'flex', flex: '0 0 auto', alignItems: 'center', gap: 4 }}>
-                    <button className="food-row__icon" title="Editar" aria-label="Editar" onClick={() => openEditModal(food)}>✎</button>
+                    <IconActionButton name="edit" ariaLabel="Editar alimento" onClick={() => openEditModal(food)} />
                     {(
-                      <button className="food-row__icon food-row__icon--danger" title="Eliminar" aria-label="Eliminar" onClick={() => deleteFood(food.id)}>🗑</button>
+                      <IconActionButton name="delete" ariaLabel="Eliminar alimento" onClick={() => deleteFood(food.id)} />
                     )}
                   </span>
                 </div>
