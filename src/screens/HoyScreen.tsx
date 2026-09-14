@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { calculateDailyEnergyBalance } from '../energy'
 import type { FoodItem } from '../data/foods'
-import { activitiesRepository, diaryRepository, foodsRepository, goalsRepository, measurementsRepository, mealsRepository } from '../data/cloud/repositories'
+import { activitiesRepository, diaryRepository, foodsRepository, goalsRepository, measurementsRepository, mealsRepository, profileRepository } from '../data/cloud/repositories'
 import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type BodyMeasurement, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User, type UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 
@@ -61,7 +61,7 @@ function createMealSnapshot(meal: Meal, foods: FoodItem[]): MealDiarySnapshot {
   }
 }
 
-export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeUser: User; onUserClick: () => void; onGoToProgress: () => void }) {
+export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser: User; onUserClick: () => void; onGoToUser: () => void }) {
   const [foods, setFoods] = useState<FoodItem[]>([])
   const [sharedMeals, setSharedMeals] = useState<Meal[]>([])
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
@@ -91,10 +91,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
   useEffect(() => {
     let active = true
     setLoading(true)
-    Promise.all([foodsRepository.list(activeUser.id), mealsRepository.list(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id), goalsRepository.get(activeUser.id), measurementsRepository.list(activeUser.id)])
-      .then(([nextFoods, nextMeals, nextEntries, nextActivities, nextGoals, nextMeasurements]) => {
+    Promise.all([foodsRepository.list(activeUser.id), mealsRepository.list(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id), goalsRepository.get(activeUser.id), measurementsRepository.list(activeUser.id), profileRepository.get(activeUser.id)])
+      .then(([nextFoods, nextMeals, nextEntries, nextActivities, nextGoals, nextMeasurements, profile]) => {
         if (!active) return
-        setFoods(nextFoods); setSharedMeals(nextMeals); setEntries(nextEntries); setActivities(nextActivities); setGoals(nextGoals); setMeasurements(nextMeasurements)
+        setFoods(nextFoods); setSharedMeals(nextMeals); setEntries(nextEntries); setActivities(nextActivities); setGoals({ ...nextGoals, sex: profile.sex, birthDate: profile.birthDate, heightCm: profile.heightCm }); setMeasurements(nextMeasurements)
         setSelectedFoodId((current) => current || nextFoods[0]?.id || ''); setSelectedMealId((current) => current || nextMeals[0]?.id || ''); setLoadError('')
       })
       .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudieron cargar los datos de hoy.') })
@@ -383,7 +383,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
 
       <section className="daily-goals-card" aria-labelledby="daily-goals-title">
         <span className="daily-goals-card__title" id="daily-goals-title">Balance del día</span>
-        {dailyEnergyBalance ? (
+        {loading ? (
+          <span className="daily-goals-card__empty">Cargando balance…</span>
+        ) : dailyEnergyBalance ? (
           <div className="daily-balance-card__list">
             <BalanceRow label="Ingerido" value={formatKcal(totals.kcal)} />
             <BalanceRow label="Gasto estimado" value={formatKcal(dailyEnergyBalance.estimatedDailyExpenditure)} />
@@ -393,10 +395,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToProgress }: { activeU
             />
             {dailyGoals.targetDeficitKcal !== undefined
               ? <BalanceRow label="Objetivo déficit" value={formatKcal(dailyGoals.targetDeficitKcal)} />
-              : <ProgressLink onClick={onGoToProgress}>Configura un déficit objetivo en Progreso</ProgressLink>}
+              : <ProgressLink onClick={onGoToUser}>Configura un déficit objetivo en Usuario</ProgressLink>}
           </div>
         ) : (
-          <ProgressLink onClick={onGoToProgress}>Completa tus datos físicos en Progreso para calcular tu gasto diario.</ProgressLink>
+          <ProgressLink onClick={onGoToUser}>Completa tus datos físicos en Usuario para calcular tu gasto diario.</ProgressLink>
         )}
 
         {dailyMacroComparisons.length > 0 && (
@@ -720,7 +722,7 @@ function BalanceRow({ label, value }: { label: string; value: string }) {
 }
 
 function ProgressLink({ children, onClick }: { children: string; onClick: () => void }) {
-  return <div className="daily-goals-card__empty"><span>{children}</span><button type="button" onClick={onClick}>Ir a Progreso</button></div>
+  return <div className="daily-goals-card__empty"><span>{children}</span><button type="button" onClick={onClick}>Ir a Usuario</button></div>
 }
 
 function DailyGoalRow({ comparison }: { comparison: DailyGoalComparison }) {

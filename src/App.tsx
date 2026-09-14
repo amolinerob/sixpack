@@ -31,7 +31,7 @@ function App() {
   return (
     <div className="app-shell">
       <main className="app-main">
-        {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} onUserClick={() => undefined} onGoToProgress={() => setActiveScreen('progreso')} />}
+        {activeScreen === 'hoy' && <HoyScreen activeUser={activeUser} onUserClick={() => undefined} onGoToUser={() => setActiveScreen('usuario')} />}
         {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => undefined} />}
         {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => undefined} />}
         {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => undefined} />}
