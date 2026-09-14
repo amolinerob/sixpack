@@ -7,6 +7,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { GoalProgressRing } from '../components/GoalProgressRing'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { IconActionButton } from '../components/ActionIcon'
+import { MealSnapshotEditor } from '../components/MealSnapshotEditor'
 import { getGoalPercentage, getGoalStatus } from '../goalStatus'
 
 function todayIsoLocal(date = new Date()) {
@@ -92,6 +93,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   const [activityCalories, setActivityCalories] = useState<number>(0)
   const [activityNotes, setActivityNotes] = useState('')
   const [pendingDelete, setPendingDelete] = useState<{ type: 'entry' | 'activity'; id: string; name?: string } | null>(null)
+  const [mealSnapshotDraft, setMealSnapshotDraft] = useState<{ mealId: string; name: string; ingredients: MealIngredient[]; editingEntry?: FoodDiaryEntry } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -186,6 +188,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   }
 
   function openEditor(entry: FoodDiaryEntry) {
+    if (entry.entryType === 'meal' && entry.mealSnapshot) {
+      setMealSnapshotDraft({ mealId: entry.mealSnapshot.mealId, name: entry.mealSnapshot.name, ingredients: entry.mealSnapshot.ingredients, editingEntry: entry })
+      return
+    }
     setEditingId(entry.id)
     setDraftMeal(entry.meal)
     if (entry.entryType === 'meal' && entry.mealSnapshot) {
@@ -216,39 +222,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     try {
     if (entryKind === 'meal') {
       if (!selectedSharedMeal) return
-      const snapshot = createMealSnapshot(selectedSharedMeal, foods)
-      const mealValues = {
-        entryType: 'meal' as const,
-        foodId: undefined,
-        quantityGrams: 1,
-        quantityUnit: 'comida',
-        meal: draftMeal,
-        kcal: snapshot.kcal,
-        protein: snapshot.protein,
-        carbs: snapshot.carbs,
-        fat: snapshot.fat,
-        nameSnapshot: snapshot.name,
-        mealSnapshot: snapshot,
-      }
-
-      if (editingId) {
-        const target = entries.find((entry) => entry.id === editingId)
-        if (!target) return
-        const saved = await diaryRepository.save(activeUser.id, { ...target, ...mealValues }, editingId)
-        setEntries((current) => current.map((entry) => entry.id === saved.id ? saved : entry))
-      } else {
-        const next: FoodDiaryEntry = {
-          id: `${Date.now()}-${Math.round(Math.random() * 10000)}`,
-          date: selectedDate,
-          createdAt: new Date().toISOString(),
-          ...mealValues,
-        }
-        const { id: _id, ...values } = next
-        const saved = await diaryRepository.save(activeUser.id, values)
-        setEntries((current) => [...current, saved])
-      }
-
       closeSelector()
+      setMealSnapshotDraft({ mealId: selectedSharedMeal.id, name: selectedSharedMeal.name, ingredients: selectedSharedMeal.ingredients })
       return
     }
 
@@ -343,6 +318,30 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     const target = pendingDelete
     const deleted = target.type === 'entry' ? await deleteEntry(target.id) : await deleteActivity(target.id)
     if (deleted) setPendingDelete(null)
+  }
+
+  async function saveMealSnapshot(ingredients: MealIngredient[]) {
+    if (!mealSnapshotDraft) return
+    const nutrition = mealNutrition(ingredients, foods)
+    const snapshot: MealDiarySnapshot = {
+      mealId: mealSnapshotDraft.mealId,
+      name: mealSnapshotDraft.name,
+      ingredients: ingredients.map((ingredient) => ({ ...ingredient, foodName: foods.find((food) => food.id === ingredient.foodId)?.name ?? 'Alimento no disponible' })),
+      kcal: round(nutrition.kcal), protein: round(nutrition.protein), carbs: round(nutrition.carbs), fat: round(nutrition.fat),
+    }
+    const mealValues = { entryType: 'meal' as const, foodId: undefined, quantityGrams: 1, quantityUnit: 'comida', meal: mealSnapshotDraft.editingEntry?.meal ?? draftMeal, kcal: snapshot.kcal, protein: snapshot.protein, carbs: snapshot.carbs, fat: snapshot.fat, nameSnapshot: snapshot.name, mealSnapshot: snapshot }
+    try {
+      if (mealSnapshotDraft.editingEntry) {
+        const saved = await diaryRepository.save(activeUser.id, { ...mealSnapshotDraft.editingEntry, ...mealValues }, mealSnapshotDraft.editingEntry.id)
+        setEntries((current) => current.map((entry) => entry.id === saved.id ? saved : entry))
+      } else {
+        const next: FoodDiaryEntry = { id: '', date: selectedDate, createdAt: new Date().toISOString(), ...mealValues }
+        const { id: _id, ...values } = next
+        const saved = await diaryRepository.save(activeUser.id, values)
+        setEntries((current) => [...current, saved])
+      }
+      setMealSnapshotDraft(null)
+    } catch (reason) { setLoadError(reason instanceof Error ? reason.message : 'No se pudo guardar la comida del día.') }
   }
 
   async function confirmActivity() {
@@ -733,6 +732,15 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
         error={loadError}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmDelete()}
+      />}
+      {mealSnapshotDraft && <MealSnapshotEditor
+        key={`${mealSnapshotDraft.mealId}-${mealSnapshotDraft.editingEntry?.id ?? 'new'}`}
+        name={mealSnapshotDraft.name}
+        foods={foods}
+        initialIngredients={mealSnapshotDraft.ingredients}
+        calculateNutrition={(ingredients) => mealNutrition(ingredients, foods)}
+        onCancel={() => setMealSnapshotDraft(null)}
+        onConfirm={(ingredients) => void saveMealSnapshot(ingredients)}
       />}
     </section>
   )
