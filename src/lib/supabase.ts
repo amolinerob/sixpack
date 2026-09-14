@@ -15,13 +15,10 @@ export function checkSupabaseConfig() {
   }
 }
 
-if (import.meta.env.DEV && missingVariables.length > 0) {
+if (missingVariables.length > 0) {
   throw new Error(`Falta la configuración de Supabase: ${missingVariables.join(', ')}`)
 }
 
 // Los valores de reserva solo evitan un fallo opaco en producción si falta configuración.
 // No se usan para realizar consultas y nunca sustituyen las variables reales.
-export const supabase = createClient(
-  url ?? 'https://supabase-config-required.invalid',
-  anonKey ?? 'supabase-config-required',
-)
+export const supabase = createClient(url!, anonKey!)
