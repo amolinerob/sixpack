@@ -22,6 +22,9 @@
   --accent-strong: #153a2f;
   --accent-soft: #dae7dc;
   --accent-light: #edf7ee;
+  --goal-status-red: #d9534f;
+  --goal-status-yellow: #B88A00;
+  --goal-status-green: #4CAF6A;
   --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -201,38 +204,54 @@ button {
   margin-top: 10px;
 }
 
-.daily-balance-card__list {
+.daily-balance-bars {
   display: grid;
-  gap: 7px;
-  margin-top: 12px;
+  gap: 14px;
+  margin-top: 16px;
 }
 
-.daily-balance-card {
+.daily-balance-bars__row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 88px) minmax(0, 78px);
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 10px;
 }
 
-.daily-balance-card__list {
-  margin-top: 0;
+.daily-balance-bars__track {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--accent-light);
+  overflow: hidden;
 }
 
-.daily-balance-card__ring {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
+.daily-balance-bars__fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.daily-balance-bars__fill--expenditure { background: #4388C7; }
+.daily-balance-bars__fill--target { background: #9A7BC0; }
+.daily-balance-bars__fill--red { background: var(--goal-status-red); }
+.daily-balance-bars__fill--yellow { background: var(--goal-status-yellow); }
+.daily-balance-bars__fill--green { background: var(--goal-status-green); }
+.daily-balance-bars__fill--neutral { background: var(--text-muted); }
+
+.daily-balance-bars__label {
   color: var(--text-soft);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.daily-balance-bars__value {
+  color: var(--text);
+  font-size: 12px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .goal-progress-ring {
-  --goal-ring-color: #d9534f;
+  --goal-ring-color: var(--goal-status-red);
   position: relative;
   display: grid;
   place-items: center;
@@ -279,8 +298,8 @@ button {
   font-size: 18px;
 }
 
-.goal-progress-ring--yellow { --goal-ring-color: #bd8a22; }
-.goal-progress-ring--green { --goal-ring-color: var(--accent-strong); }
+.goal-progress-ring--yellow { --goal-ring-color: var(--goal-status-yellow); }
+.goal-progress-ring--green { --goal-ring-color: var(--goal-status-green); }
 
 .daily-goals-card__macro-rings {
   display: grid;
@@ -312,24 +331,9 @@ button {
 }
 
 @media (max-width: 350px) {
-  .daily-balance-card { gap: 10px; }
   .goal-progress-ring--large { width: 82px; height: 82px; }
   .goal-progress-ring { width: 56px; height: 56px; }
   .daily-goals-card__macro-rings { gap: 4px; }
-}
-
-.daily-balance-card__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--text-soft);
-  font-size: 13px;
-}
-
-.daily-balance-card__row strong {
-  color: var(--text);
-  font-size: 13px;
 }
 
 .daily-goals-card__row {
@@ -472,32 +476,31 @@ button {
   font-weight: 800;
 }
 
-.meal-entry__kind {
-  display: inline-block;
-  margin-right: 6px;
-  border-radius: 8px;
-  background: var(--green-soft);
-  color: var(--green-strong);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 2px 5px;
-  text-transform: uppercase;
-}
-
 .meal-entry__meta {
   display: block;
   color: var(--text-soft);
   font-size: 11px;
 }
 
-.meal-entry__action-strip {
+.row-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
+.meal-entry__content,
+.activity-row__main,
+.meal-recipe-card__top > div,
+.food-row__button,
+.progress-history__content {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 
 .app-user-strip {
   display: flex;
@@ -943,6 +946,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .activity-row__main {
@@ -965,11 +969,6 @@ button {
 .activity-row__notes {
   color: var(--text-muted);
   font-size: 11px;
-}
-
-.activity-row__actions {
-  display: flex;
-  gap: 8px;
 }
 
 .activity-row__action {
@@ -1446,8 +1445,7 @@ button {
 }
 
 .progress-history__row {
-  display: grid;
-  grid-template-columns: 84px 76px 76px auto;
+  display: flex;
   align-items: center;
   gap: 8px;
   background: var(--sage-light);
@@ -1460,14 +1458,14 @@ button {
 .progress-history__value {
   color: var(--text-soft);
   font-size: 11px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
-.progress-history__actions {
+.progress-history__content {
   display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  min-width: 58px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
 }
 
 .icon-button {
@@ -1700,7 +1698,6 @@ button {
   line-height: 1.45;
 }
 
-.meal-recipe-card__actions,
 .meal-form__ingredient-controls {
   display: flex;
   align-items: center;

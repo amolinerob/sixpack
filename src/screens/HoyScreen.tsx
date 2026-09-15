@@ -1,3 +1,4 @@
+import { DailyBalanceBars } from '../components/DailyBalanceBars'
 import { useEffect, useMemo, useState } from 'react'
 import { calculateDailyEnergyBalance } from '../energy'
 import type { FoodItem } from '../data/foods'
@@ -407,19 +408,16 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
         {loading ? (
           <span className="daily-goals-card__empty">Cargando balance…</span>
         ) : dailyEnergyBalance ? (
-          <div className="daily-balance-card">
-            {deficitProgress && <div className="daily-balance-card__ring"><GoalProgressRing label="Cumplimiento del déficit" percentage={deficitProgress.percentage} status={deficitProgress.status} size="large" /><span>Cumplimiento del déficit</span></div>}
-            <div className="daily-balance-card__list">
-              <BalanceRow label="Ingeridas" value={formatKcal(totals.kcal)} />
-              <BalanceRow label="Gasto estimado" value={formatKcal(dailyEnergyBalance.estimatedDailyExpenditure)} />
-              <BalanceRow label={dailyEnergyBalance.estimatedDeficit >= 0 ? 'Déficit' : 'Superávit'} value={formatKcal(Math.abs(dailyEnergyBalance.estimatedDeficit))} />
-              {deficitProgress
-                ? <><BalanceRow label="Objetivo" value={formatKcal(deficitProgress.target)} /><BalanceRow label="Déficit actual" value={formatKcal(deficitProgress.current)} /></>
-                : dailyGoals.targetDeficitKcal !== undefined
-                  ? <BalanceRow label="Objetivo déficit" value={formatKcal(dailyGoals.targetDeficitKcal)} />
-                  : <ProgressLink onClick={onGoToUser}>Configura un déficit objetivo en Usuario</ProgressLink>}
-            </div>
-          </div>
+          <>
+            <DailyBalanceBars
+              expenditure={dailyEnergyBalance.estimatedDailyExpenditure}
+              consumed={totals.kcal}
+              deficit={dailyEnergyBalance.estimatedDeficit}
+              target={dailyGoals.targetDeficitKcal}
+              status={deficitProgress?.status}
+            />
+            {dailyGoals.targetDeficitKcal === undefined && <ProgressLink onClick={onGoToUser}>Configura un d?ficit objetivo en Usuario</ProgressLink>}
+          </>
         ) : (
           <ProgressLink onClick={onGoToUser}>Completa tus datos físicos en Usuario para calcular tu gasto diario.</ProgressLink>
         )}
@@ -461,13 +459,12 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                     return (
                       <article className="meal-entry" key={entry.id}>
                         <button className="meal-entry__content" type="button" onClick={() => openEditor(entry)} aria-label={`Editar ${entry.nameSnapshot ?? entry.mealSnapshot?.name ?? 'entrada del diario'}`}>
-                          <span className="meal-entry__kind">{entry.entryType === 'meal' ? 'C' : 'A'}</span>
                           <span className="meal-entry__details">
                             <span className="meal-entry__food">{mealSnapshot ? mealSnapshot.name : food?.name}</span>
                             <span className="meal-entry__meta">{round(entry.kcal)} kcal · {round(entry.protein)} P · {round(entry.carbs)} HC · {round(entry.fat)} G</span>
                           </span>
                         </button>
-                        <span className="meal-entry__action-strip">
+                        <span className="row-actions">
                           <IconActionButton name="edit" ariaLabel="Editar entrada del diario" onClick={() => openEditor(entry)} />
                           <IconActionButton name="delete" ariaLabel="Eliminar entrada del diario" onClick={() => setPendingDelete({ type: 'entry', id: entry.id, name: entry.nameSnapshot ?? entry.mealSnapshot?.name })} />
                         </span>
@@ -496,10 +493,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
 
         <div className="activity-list">
           {dateActivities.length === 0 && (
-            <div className="activity-empty">
-              <span className="activity-empty__icon">+</span>
-              <span className="activity-empty__text">Añadir actividad</span>
-            </div>
+            <span className="meal-row__empty">Sin actividad</span>
           )}
 
           {dateActivities.map((activity) => (
@@ -509,7 +503,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                 <span className="activity-row__meta">{formatDuration(activity.durationMinutes)} · {activity.calories} kcal</span>
                 {activity.notes && <span className="activity-row__notes">{activity.notes}</span>}
               </div>
-              <div className="activity-row__actions">
+              <div className="row-actions">
                 <IconActionButton name="edit" ariaLabel="Editar actividad" onClick={() => openActivityEditor(activity)} />
                 <IconActionButton name="delete" ariaLabel="Eliminar actividad" onClick={() => setPendingDelete({ type: 'activity', id: activity.id })} />
               </div>
@@ -748,14 +742,6 @@ type DailyGoalComparison = {
   consumed: number
   target: number
   unit: string
-}
-
-function formatKcal(value: number) {
-  return `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 }).format(Math.round(value))} kcal`
-}
-
-function BalanceRow({ label, value }: { label: string; value: string }) {
-  return <div className="daily-balance-card__row"><span>{label}</span><strong>{value}</strong></div>
 }
 
 function ProgressLink({ children, onClick }: { children: string; onClick: () => void }) {

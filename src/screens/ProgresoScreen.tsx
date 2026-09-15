@@ -249,10 +249,12 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
           ) : (
             sorted.map((item) => (
               <div className="progress-history__row" key={item.id}>
+                <div className="progress-history__content">
                 <span className="progress-history__date">{formatDate(item.date)}</span>
                 <span className="progress-history__value">{item.weightKg ? `${roundValue(item.weightKg)} kg` : '—'}</span>
                 <span className="progress-history__value">{item.waistCm ? `${roundValue(item.waistCm)} cm` : '—'}</span>
-                <span className="progress-history__actions">
+                </div>
+                <span className="row-actions">
                   <IconActionButton name="edit" ariaLabel="Editar medición" onClick={() => openEdit(item)} />
                   <IconActionButton name="delete" ariaLabel="Eliminar medición" onClick={() => { setError(''); setPendingMeasurementDeleteId(item.id) }} />
                 </span>

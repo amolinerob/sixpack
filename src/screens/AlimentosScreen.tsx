@@ -221,7 +221,7 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
                   >
                     <span className="food-row__name">{food.name}</span>
                   </button>
-                  <span className="food-row__actions" style={{ display: 'flex', flex: '0 0 auto', alignItems: 'center', gap: 4 }}>
+                  <span className="row-actions">
                     <IconActionButton name="edit" ariaLabel="Editar alimento" onClick={() => openEditModal(food)} />
                     {(
                       <IconActionButton name="delete" ariaLabel="Eliminar alimento" onClick={() => deleteFood(food.id)} />

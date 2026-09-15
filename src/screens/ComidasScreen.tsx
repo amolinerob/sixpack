@@ -166,7 +166,7 @@ export function ComidasScreen({ activeUser, onUserClick }: { activeUser: User; o
         {meals.length === 0 ? <div className="empty-state-block"><div className="empty-state-block__icon">+</div><div className="empty-state-block__body"><span className="empty-state-block__title">Sin comidas</span><span className="empty-state-block__text">Crea una receta reutilizable con tus alimentos.</span></div></div> : meals.map((meal) => {
           const nutrition = nutritionFor(meal.ingredients, foods)
           return <article className="meal-recipe-card" key={meal.id}>
-            <div className="meal-recipe-card__top"><div><span className="meal-recipe-card__name">{meal.name}</span>{meal.description && <span className="meal-recipe-card__description">{meal.description}</span>}</div><span className="meal-recipe-card__actions"><IconActionButton name="edit" ariaLabel="Editar comida" onClick={() => openEdit(meal)} /><IconActionButton name="delete" ariaLabel="Eliminar comida" onClick={() => requestDelete(meal.id)} /></span></div>
+            <div className="meal-recipe-card__top"><div><span className="meal-recipe-card__name">{meal.name}</span>{meal.description && <span className="meal-recipe-card__description">{meal.description}</span>}</div><span className="row-actions"><IconActionButton name="edit" ariaLabel="Editar comida" onClick={() => openEdit(meal)} /><IconActionButton name="delete" ariaLabel="Eliminar comida" onClick={() => requestDelete(meal.id)} /></span></div>
             <span className="meal-recipe-card__ingredients">{meal.ingredients.map((ingredient) => ingredientSummary(ingredient, foods)).join(' · ')}</span>
             <MacroSummary nutrition={nutrition} />
           </article>
