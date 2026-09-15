@@ -1,4 +1,5 @@
 import { DailyBalanceBars } from '../components/DailyBalanceBars'
+import { parseDecimalFromSpanishInput } from '../numericInput'
 import { useEffect, useMemo, useState } from 'react'
 import { calculateDailyEnergyBalance } from '../energy'
 import type { FoodItem } from '../data/foods'
@@ -90,8 +91,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   )
   const [draftMeal, setDraftMeal] = useState<MealName>('Desayuno')
   const [activityType, setActivityType] = useState<ActivityType>('CrossFit')
-  const [activityMinutes, setActivityMinutes] = useState<number>(60)
-  const [activityCalories, setActivityCalories] = useState<number>(0)
+  const [activityMinutes, setActivityMinutes] = useState('60')
+  const [activityCalories, setActivityCalories] = useState('0')
+  const [activityError, setActivityError] = useState('')
   const [activityNotes, setActivityNotes] = useState('')
   const [pendingDelete, setPendingDelete] = useState<{ type: 'entry' | 'activity'; id: string; name?: string } | null>(null)
   const [mealSnapshotDraft, setMealSnapshotDraft] = useState<{ mealId: string; name: string; ingredients: MealIngredient[]; editingEntry?: FoodDiaryEntry } | null>(null)
@@ -300,8 +302,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   function openActivityEditor(activity: ActivityEntry) {
     setEditingActivityId(activity.id)
     setActivityType(activity.type)
-    setActivityMinutes(activity.durationMinutes)
-    setActivityCalories(activity.calories)
+    setActivityMinutes(String(activity.durationMinutes))
+    setActivityCalories(String(activity.calories))
+    setActivityError('')
     setActivityNotes(activity.notes)
     setActivityModalOpen(true)
   }
@@ -346,8 +349,14 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   }
 
   async function confirmActivity() {
-    const cleanMinutes = Math.max(0, activityMinutes)
-    const cleanCalories = Math.max(0, activityCalories)
+    const cleanMinutes = parseDecimalFromSpanishInput(activityMinutes)
+    const cleanCalories = parseDecimalFromSpanishInput(activityCalories)
+
+    if ([cleanMinutes, cleanCalories].some((value) => !Number.isFinite(value) || value < 0)) {
+      setActivityError('La duración y las calorías deben ser números positivos o cero.')
+      return
+    }
+    setActivityError('')
 
     if (editingActivityId) {
       const next = activities.map((activity) => {
@@ -430,6 +439,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
             </div>
           </div>
         )}
+        <div className="daily-goals-card__separator" aria-hidden="true" />
       </section>
 
       <section className="meal-card">
@@ -484,8 +494,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
           <button className="activity-card__add" onClick={() => {
             setEditingActivityId(null)
             setActivityType('CrossFit')
-            setActivityMinutes(60)
-            setActivityCalories(0)
+            setActivityMinutes('60')
+            setActivityCalories('0')
+            setActivityError('')
             setActivityNotes('')
             setActivityModalOpen(true)
           }}>+</button>
@@ -535,12 +546,12 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
 
               <div className="activity-form__field">
                 <label className="food-modal__label">Duración en minutos</label>
-                <input type="number" min="0" value={activityMinutes} onChange={(event) => setActivityMinutes(Number(event.target.value))} />
+                <input type="text" inputMode="decimal" value={activityMinutes} onChange={(event) => setActivityMinutes(event.target.value)} />
               </div>
 
               <div className="activity-form__field">
                 <label className="food-modal__label">Calorías de actividad</label>
-                <input type="number" min="0" value={activityCalories} onChange={(event) => setActivityCalories(Number(event.target.value))} />
+                <input type="text" inputMode="decimal" value={activityCalories} onChange={(event) => setActivityCalories(event.target.value)} />
               </div>
 
               <div className="activity-form__field activity-form__field--full">
@@ -553,6 +564,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
               <button className="secondary-button" onClick={() => setActivityModalOpen(false)}>Cancelar</button>
               <button className="primary-button" onClick={confirmActivity}>Guardar</button>
             </div>
+            {activityError && <span className="error-text" role="alert">{activityError}</span>}
           </div>
         </div>
       )}

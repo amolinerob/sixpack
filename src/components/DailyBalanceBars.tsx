@@ -13,7 +13,7 @@ const kcalFormatter = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 
 export function DailyBalanceBars({ expenditure, consumed, deficit, target, status }: DailyBalanceBarsProps) {
   const balanceColor = deficit <= 0 ? 'red' : status ?? 'neutral'
   const rows = [
-    { label: 'Gasto estimado', value: expenditure, color: 'expenditure', anchorToExpenditure: false },
+    { label: 'Gasto', value: expenditure, color: 'expenditure', anchorToExpenditure: false },
     { label: 'Ingeridas', value: consumed, color: balanceColor, anchorToExpenditure: false },
     { label: deficit < 0 ? 'Exceso' : 'Déficit', value: Math.abs(deficit), color: balanceColor, anchorToExpenditure: true },
     ...(target !== undefined ? [{ label: 'Objetivo', value: target, color: 'target', anchorToExpenditure: true }] : []),

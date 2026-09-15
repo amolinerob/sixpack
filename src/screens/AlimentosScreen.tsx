@@ -5,6 +5,7 @@ import { foodsRepository } from '../data/cloud/repositories'
 import type { User } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { IconActionButton } from '../components/ActionIcon'
+import { parseDecimalFromSpanishInput } from '../numericInput'
 
 function normalizeFoodName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -20,11 +21,6 @@ function emptyForm() {
     carbs100g: '',
     fat100g: '',
   }
-}
-
-function parseDecimalFromSpanishInput(value: string): number {
-  const normalized = value.trim().replace(',', '.')
-  return normalized === '' ? 0 : Number(normalized)
 }
 
 export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User; onUserClick: () => void }) {

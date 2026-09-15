@@ -423,8 +423,13 @@ button {
   border-top: 1px solid var(--line);
 }
 
-.meal-group:last-child {
+.meal-group:last-child,
+.daily-goals-card__separator {
   border-bottom: 1px solid var(--line);
+}
+
+.daily-goals-card__separator {
+  margin: 12px 4px 2px;
 }
 
 .meal-row__entries {
@@ -489,7 +494,7 @@ button {
   justify-content: flex-end;
   flex: 0 0 auto;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .meal-entry__content,
@@ -1846,6 +1851,14 @@ button {
   border-bottom: 1px solid var(--line);
   border-radius: 16px;
   margin-bottom: 8px;
+}
+
+.meal-entry,
+.activity-row,
+.meal-recipe-card,
+.food-row,
+.progress-history__row {
+  padding-right: 12px;
 }
 
 .food-row.is-selected {
