@@ -23,7 +23,7 @@
   --accent-soft: #dae7dc;
   --accent-light: #edf7ee;
   --goal-status-red: #d9534f;
-  --goal-status-yellow: #B88A00;
+  --goal-status-yellow: #FFB300;
   --goal-status-green: #4CAF6A;
   --font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -495,6 +495,11 @@ button {
   flex: 0 0 auto;
   flex-wrap: nowrap;
   gap: 6px;
+}
+
+.row-actions > .icon-action-button:not(.icon-action-button--danger) {
+  position: relative;
+  left: 6px;
 }
 
 .meal-entry__content,

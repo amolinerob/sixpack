@@ -50,7 +50,9 @@ export function createWeeklySummary({ range, today, entries, activities, measure
   }), { kcal: 0, protein: 0, carbs: 0, fat: 0, activeCalories: 0 })
   const calculated = daily.filter((day) => day.energy !== undefined)
   const totalExpenditure = calculated.reduce((total, day) => total + day.energy!.estimatedDailyExpenditure, 0)
-  const totalDeficit = calculated.reduce((total, day) => total + day.energy!.estimatedDeficit, 0)
+  const totalDeficit = totalExpenditure - sum.kcal
+  // Un balance parcial no representa el déficit de todos los días incluidos.
+  const energyComplete = daily.length > 0 && calculated.length === daily.length
   const weekMeasurements = measurements.filter((measurement) => measurement.date >= range.start && measurement.date <= activeEnd)
-  return { range, activeEnd, days: daily, dayCount: daily.length, sum, calculated, totalExpenditure, totalDeficit, weekMeasurements }
+  return { range, activeEnd, days: daily, dayCount: daily.length, sum, calculated, totalExpenditure, totalDeficit, energyComplete, weekMeasurements }
 }

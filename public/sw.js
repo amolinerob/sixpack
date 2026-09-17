@@ -1,5 +1,5 @@
 const CACHE_NAME = 'six-pack-cache-v1'
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png']
+const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', ...['apple-touch-icon.png', 'icon-192.png', 'icon-512.png'].map((icon) => new URL(icon, self.registration.scope).href)]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

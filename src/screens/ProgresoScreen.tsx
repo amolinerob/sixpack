@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ProgressChart } from '../components/ProgressChart'
 import { calculateMovingAverage, calculatePeriodChange, filterPointsByPeriod, getMeasurementPoints, type ProgressPeriod } from '../progressSeries'
 import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySummary'
-import { activitiesRepository, diaryRepository, goalsRepository, measurementsRepository } from '../data/cloud/repositories'
+import { activitiesRepository, diaryRepository, goalsRepository, measurementsRepository, profileRepository } from '../data/cloud/repositories'
 import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -49,15 +49,23 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const [weightKg, setWeightKg] = useState('')
   const [waistCm, setWaistCm] = useState('')
   const [error, setError] = useState('')
-  const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1m')
+  const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1w')
   const [weekOffset, setWeekOffset] = useState(0)
   const [pendingMeasurementDeleteId, setPendingMeasurementDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    Promise.all([measurementsRepository.list(activeUser.id), goalsRepository.get(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id)])
-      .then(([nextMeasurements, nextGoals, nextEntries, nextActivities]) => { if (active) { setMeasurements(nextMeasurements); setGoals(nextGoals); setEntries(nextEntries); setActivities(nextActivities); setLoadError('') } })
+    Promise.all([measurementsRepository.list(activeUser.id), goalsRepository.get(activeUser.id), diaryRepository.list(activeUser.id), activitiesRepository.list(activeUser.id), profileRepository.get(activeUser.id)])
+      .then(([nextMeasurements, nextGoals, nextEntries, nextActivities, profile]) => {
+        if (active) {
+          setMeasurements(nextMeasurements)
+          setGoals({ ...nextGoals, sex: profile.sex, birthDate: profile.birthDate, heightCm: profile.heightCm })
+          setEntries(nextEntries)
+          setActivities(nextActivities)
+          setLoadError('')
+        }
+      })
       .catch((reason: unknown) => { if (active) setLoadError(reason instanceof Error ? reason.message : 'No se pudo cargar el progreso.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -359,14 +367,14 @@ function formatWeekRange(range: { start: string; end: string }) {
 
 function WeeklyEnergyCard({ summary, goals }: { summary: WeekSummary; goals: UserGoals }) {
   const target = goals.targetDeficitKcal === undefined ? undefined : goals.targetDeficitKcal * summary.dayCount
-  const percentage = target && target > 0 ? (summary.totalDeficit / target) * 100 : undefined
+  const percentage = summary.energyComplete && target && target > 0 ? (summary.totalDeficit / target) * 100 : undefined
   return <article className="weekly-card">
     <span className="weekly-card__title">Balance energético</span>
     <WeeklyRow label="Ingerido" value={formatKcal(summary.sum.kcal)} />
-    <WeeklyRow label="Gasto estimado" value={summary.calculated.length ? formatKcal(summary.totalExpenditure) : '—'} />
-    <WeeklyRow label={summary.totalDeficit >= 0 ? 'Déficit acumulado' : 'Superávit acumulado'} value={summary.calculated.length ? formatKcal(Math.abs(summary.totalDeficit)) : '—'} />
-    <WeeklyRow label="Media diaria" value={summary.calculated.length ? formatKcal(summary.totalDeficit / summary.calculated.length) : '—'} />
-    {target !== undefined && <><WeeklyRow label="Objetivo semanal" value={formatKcal(target)} /><div className="weekly-progress"><span style={{ width: `${Math.min(Math.max(percentage ?? 0, 0), 100)}%` }} /><strong>{new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(percentage ?? 0)}%</strong></div></>}
+    <WeeklyRow label="Gasto estimado" value={summary.calculated.length ? `${formatKcal(summary.totalExpenditure)}${summary.energyComplete ? '' : ' (incompleto)'}` : '—'} />
+    <WeeklyRow label={!summary.energyComplete || summary.totalDeficit >= 0 ? 'Déficit acumulado' : 'Superávit acumulado'} value={summary.energyComplete ? formatKcal(Math.abs(summary.totalDeficit)) : '—'} />
+    <WeeklyRow label="Media diaria" value={summary.energyComplete ? formatKcal(summary.totalDeficit / summary.dayCount) : '—'} />
+    {target !== undefined && <><WeeklyRow label="Objetivo semanal" value={formatKcal(target)} /><div className="weekly-progress"><span style={{ width: `${Math.min(Math.max(percentage ?? 0, 0), 100)}%` }} /><strong>{percentage === undefined ? '—' : `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(percentage)}%`}</strong></div></>}
   </article>
 }
 
