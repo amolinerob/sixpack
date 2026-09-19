@@ -1,9 +1,8 @@
-import type { User } from './types'
-
-export type ThemeId = 'green' | 'rose'
+import type { AccentColor } from './types'
 
 export type Theme = {
-  id: ThemeId
+  id: AccentColor
+  label: string
   background: string
   green: string
   greenStrong: string
@@ -13,9 +12,10 @@ export type Theme = {
   accent: string
 }
 
-export const THEMES: Record<ThemeId, Theme> = {
+export const ACCENT_COLORS: Record<AccentColor, Theme> = {
   green: {
     id: 'green',
+    label: 'Verde',
     background: '#eef3ee',
     green: '#8fb58f',
     greenStrong: '#153a2f',
@@ -24,8 +24,24 @@ export const THEMES: Record<ThemeId, Theme> = {
     icon: '#153a2f',
     accent: '#8fb58f',
   },
-  rose: {
-    id: 'rose',
+  turquoise: {
+    id: 'turquoise', label: 'Turquesa', background: '#eef7f5',
+    green: '#279c8e', greenStrong: '#17594f', greenSoft: '#d4ece6',
+    sageLight: '#eaf7f3', icon: '#17594f', accent: '#279c8e',
+  },
+  blue: {
+    id: 'blue', label: 'Azul', background: '#f0f5fb',
+    green: '#4a90d2', greenStrong: '#234e78', greenSoft: '#d9e7f6',
+    sageLight: '#edf4fc', icon: '#234e78', accent: '#4a90d2',
+  },
+  violet: {
+    id: 'violet', label: 'Violeta', background: '#f5f2fa',
+    green: '#8b6fd8', greenStrong: '#513c7d', greenSoft: '#e7ddf5',
+    sageLight: '#f3eefb', icon: '#513c7d', accent: '#8b6fd8',
+  },
+  pink: {
+    id: 'pink',
+    label: 'Rosa',
     background: '#fcf3f6',
     green: '#d4a0ad',
     greenStrong: '#6b4055',
@@ -34,16 +50,20 @@ export const THEMES: Record<ThemeId, Theme> = {
     icon: '#a46b80',
     accent: '#d4a0ad',
   },
+  orange: {
+    id: 'orange', label: 'Naranja', background: '#fcf5ee',
+    green: '#dc9146', greenStrong: '#784519', greenSoft: '#f6e2cb',
+    sageLight: '#fcf1e5', icon: '#784519', accent: '#dc9146',
+  },
 }
 
-export const USER_THEME_BY_ID: Record<string, ThemeId> = {
-  angel: 'green',
-  aurora: 'rose',
+export function isAccentColor(value: unknown): value is AccentColor {
+  return typeof value === 'string' && Object.hasOwn(ACCENT_COLORS, value)
 }
 
-export function getThemeForUser(user: User | undefined): Theme {
-  const id = user ? USER_THEME_BY_ID[user.id] ?? 'green' : 'green'
-  return THEMES[id]
+// Solo compatibilidad con la identidad antigua; nunca depende del nombre visible.
+export function getDefaultAccentColor(legacyUserKey: string | null): AccentColor {
+  return legacyUserKey === 'aurora' ? 'pink' : 'green'
 }
 
 export function applyThemeToRoot(theme: Theme) {

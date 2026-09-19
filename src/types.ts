@@ -1,5 +1,9 @@
 export type Screen = 'hoy' | 'alimentos' | 'comidas' | 'progreso' | 'usuario'
 
+export type AccentColor = 'green' | 'turquoise' | 'blue' | 'violet' | 'pink' | 'orange'
+
+export type UserPreferences = { accentColor: AccentColor }
+
 export type User = {
   id: string
   name: string

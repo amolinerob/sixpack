@@ -1513,6 +1513,34 @@ button {
   color: var(--text-muted);
 }
 
+.user-preferences h2 { margin: 0; }
+.user-preferences__label { margin: 16px 0 12px; color: var(--text); font-size: 14px; font-weight: 700; }
+.user-preferences__colors { display: flex; flex-wrap: wrap; gap: 10px 6px; }
+.user-preferences__color {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.user-preferences__color[aria-pressed='true'] { border-color: var(--accent-strong); background: var(--accent-light); }
+.user-preferences__color:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.user-preferences__color:disabled { cursor: wait; }
+.user-preferences__swatch { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; }
+.user-preferences__swatch svg { background: var(--panel); border-radius: 50%; padding: 2px; }
+.user-preferences__color-name { font-size: 10px; font-weight: 700; }
+.user-preferences__status { display: block; margin-top: 12px; color: var(--text-soft); font-size: 12px; }
+.user-preferences .error-text { display: block; margin-top: 8px; }
+
 .icon-action-button {
   appearance: none;
   -webkit-appearance: none;

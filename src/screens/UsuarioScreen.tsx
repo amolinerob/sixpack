@@ -5,13 +5,15 @@ import type { BodyMeasurement, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { useAuth } from '../auth/AuthProvider'
 import { migrateLocalData, reviewLocalMigration, type MigrationResult, type MigrationReview } from '../migration/localToSupabase'
+import { UserPreferencesSection } from '../components/UserPreferencesSection'
+import type { useUserPreferences } from '../useUserPreferences'
 
 function todayIsoLocal() { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
 function formatDate(value: string) { return new Date(`${value}T12:00:00`).toLocaleDateString('es-ES') }
 function format(value: number, unit: string) { return `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 function parse(value: string) { return value.trim() === '' ? undefined : Number(value.trim().replace(',', '.')) }
 
-export function UsuarioScreen({ activeUser, onUserClick, onSignOut }: { activeUser: User; onUserClick: () => void; onSignOut: () => void }) {
+export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences }: { activeUser: User; onUserClick: () => void; onSignOut: () => void; preferences: ReturnType<typeof useUserPreferences> }) {
   const [goals, setGoals] = useState<UserGoals>({})
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,6 +59,7 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut }: { activeUs
     <ScreenHeader title="USUARIO" user={activeUser} onUserClick={onUserClick} />{loading && <span className="progress-card__empty">Cargando usuario…</span>}
     <section className="physical-data-card"><div className="goals-card__top"><span className="goals-card__title">Datos físicos</span><button className="goals-card__edit" onClick={openEdit}>Editar datos físicos</button></div><div className="goals-card__list">{rows([['Sexo', goals.sex === 'male' ? 'Hombre' : goals.sex === 'female' ? 'Mujer' : undefined], ['Fecha nacimiento', goals.birthDate ? formatDate(goals.birthDate) : undefined], ['Altura', goals.heightCm !== undefined ? format(goals.heightCm, 'cm') : undefined], ['Peso actual', weight !== undefined ? format(weight, 'kg') : undefined], ['Metabolismo basal', bmr !== undefined ? format(Math.round(bmr), 'kcal/día') : undefined]])}</div></section>
     <section className="goals-card"><div className="goals-card__top"><span className="goals-card__title">Objetivos</span><button className="goals-card__edit" onClick={openEdit}>Editar objetivos</button></div><div className="goals-card__list">{rows([['Peso', goals.targetWeightKg !== undefined ? format(goals.targetWeightKg, 'kg') : undefined], ['Cintura', goals.targetWaistCm !== undefined ? format(goals.targetWaistCm, 'cm') : undefined], ['Déficit', goals.targetDeficitKcal !== undefined ? format(goals.targetDeficitKcal, 'kcal/día') : undefined], ['Proteína', goals.targetProteinG !== undefined ? format(goals.targetProteinG, 'g/día') : undefined], ['Hidratos', goals.targetCarbsG !== undefined ? format(goals.targetCarbsG, 'g/día') : undefined], ['Grasas', goals.targetFatG !== undefined ? format(goals.targetFatG, 'g/día') : undefined]])}</div></section>
+    <UserPreferencesSection preferences={preferences} />
     <section className="goals-card cloud-migration">
       <span className="goals-card__title">Datos en la nube</span>
       {!migrationReview && <><span className="goals-card__empty">Datos locales pendientes de sincronizar.</span><button className="secondary-button" onClick={reviewMigration}>Revisar migración</button></>}

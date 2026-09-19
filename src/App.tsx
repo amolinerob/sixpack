@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { useAuth } from './auth/AuthProvider'
 import { BottomNavigation } from './components/BottomNavigation'
 import { AlimentosScreen } from './screens/AlimentosScreen'
@@ -7,8 +7,9 @@ import { HoyScreen } from './screens/HoyScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { ProgresoScreen } from './screens/ProgresoScreen'
 import { UsuarioScreen } from './screens/UsuarioScreen'
-import { USERS, type Screen, type User } from './types'
-import { applyThemeToRoot, getThemeForUser } from './theme'
+import { type Screen, type User } from './types'
+import { ACCENT_COLORS, applyThemeToRoot, getDefaultAccentColor } from './theme'
+import { useUserPreferences } from './useUserPreferences'
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('hoy')
@@ -18,9 +19,10 @@ function App() {
     return { id: profile.id, name: profile.display_name ?? 'Usuario' }
   }, [profile])
 
-  const theme = useMemo(() => getThemeForUser(USERS.find((candidate) => candidate.id === legacyUserKey) ?? activeUser), [activeUser, legacyUserKey])
+  const preferences = useUserPreferences(activeUser?.id, getDefaultAccentColor(legacyUserKey))
+  const theme = ACCENT_COLORS[preferences.accentColor]
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     applyThemeToRoot(theme)
   }, [theme])
 
@@ -35,7 +37,7 @@ function App() {
         {activeScreen === 'alimentos' && <AlimentosScreen activeUser={activeUser} onUserClick={() => undefined} />}
         {activeScreen === 'comidas' && <ComidasScreen activeUser={activeUser} onUserClick={() => undefined} />}
         {activeScreen === 'progreso' && <ProgresoScreen activeUser={activeUser} onUserClick={() => undefined} />}
-        {activeScreen === 'usuario' && <UsuarioScreen activeUser={activeUser} onUserClick={() => undefined} onSignOut={() => void signOut()} />}
+        {activeScreen === 'usuario' && <UsuarioScreen activeUser={activeUser} onUserClick={() => undefined} onSignOut={() => void signOut()} preferences={preferences} />}
       </main>
 
       <BottomNavigation activeScreen={activeScreen} onNavigate={setActiveScreen} />

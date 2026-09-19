@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase'
 import type { FoodItem } from '../foods'
-import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, MealIngredient, UserGoals } from '../../types'
+import type { AccentColor, ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, MealIngredient, UserGoals, UserPreferences } from '../../types'
+import { isAccentColor } from '../../theme'
 
 type ProfileData = { id: string; displayName: string; sex?: UserGoals['sex']; birthDate?: string; heightCm?: number }
 
@@ -25,6 +26,39 @@ export const profileRepository = {
   async update(userId: string, data: Pick<ProfileData, 'sex' | 'birthDate' | 'heightCm'>) {
     const response = await supabase.from('profiles').update({ sex: data.sex ?? null, birth_date: data.birthDate ?? null, height_cm: data.heightCm ?? null }).eq('id', userId)
     if (response.error) throw new Error(response.error.message)
+  },
+}
+
+function preferencesError(operation: 'leer' | 'guardar', error: { code?: string; message: string; details?: string | null; hint?: string | null }): never {
+  console.error(`Error al ${operation} user_preferences`, {
+    code: error.code, message: error.message, details: error.details, hint: error.hint,
+  })
+  if (error.code === 'PGRST205' || error.code === '42P01') {
+    throw new Error('Supabase no encuentra la tabla user_preferences. Ejecuta la migración 202609190001_user_preferences.sql en el proyecto configurado.')
+  }
+  if (error.code === '42501') {
+    throw new Error('Supabase ha denegado el acceso a user_preferences. Revisa los permisos y las policies RLS del usuario autenticado.')
+  }
+  throw new Error(`No se pudo ${operation} la preferencia de color${error.code ? ` (${error.code})` : ''}. ${error.message}`)
+}
+
+export const userPreferencesRepository = {
+  async get(userId: string): Promise<UserPreferences | null> {
+    const { data, error } = await supabase.from('user_preferences').select('accent_color').eq('user_id', userId).maybeSingle()
+    if (error) preferencesError('leer', error)
+    if (!data) return null
+    if (!isAccentColor(data.accent_color)) throw new Error('El color guardado no es válido.')
+    return { accentColor: data.accent_color }
+  },
+  async upsert(userId: string, accentColor: AccentColor): Promise<UserPreferences> {
+    if (!isAccentColor(accentColor)) throw new Error('Elige un color de la paleta.')
+    const response = await supabase.from('user_preferences')
+      .upsert({ user_id: userId, accent_color: accentColor }, { onConflict: 'user_id' })
+      .select('accent_color').single()
+    if (response.error) preferencesError('guardar', response.error)
+    const row = requireData(response.data, response.error, 'No se pudo guardar el color.')
+    if (!isAccentColor(row.accent_color)) throw new Error('El color guardado no es válido.')
+    return { accentColor: row.accent_color }
   },
 }
 
