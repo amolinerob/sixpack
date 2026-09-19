@@ -27,6 +27,11 @@ function formatDate(dateKey: string) {
   })
 }
 
+function formatMonth(monthKey: string) {
+  const label = new Date(`${monthKey}-01T12:00:00`).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 function roundValue(value: number | undefined) {
   if (value === undefined) {
     return null
@@ -54,6 +59,7 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const [error, setError] = useState('')
   const [evolutionPeriod, setEvolutionPeriod] = useState<ProgressPeriod>('1w')
   const [weekOffset, setWeekOffset] = useState(0)
+  const [historyMonth, setHistoryMonth] = useState(() => todayIsoLocal().slice(0, 7))
   const [pendingMeasurementDeleteId, setPendingMeasurementDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -77,6 +83,11 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
   const sorted = useMemo(() => {
     return [...measurements].sort((a, b) => b.date.localeCompare(a.date))
   }, [measurements])
+
+  const currentMonth = todayIsoLocal().slice(0, 7)
+  const historyMonths = [...new Set([currentMonth, historyMonth, ...measurements.map((item) => item.date.slice(0, 7))])]
+    .sort((a, b) => b.localeCompare(a))
+  const historyMeasurements = sorted.filter((item) => item.date.slice(0, 7) === historyMonth)
 
   const latestWeight = sorted.find((m) => m.weightKg !== undefined)
   const latestWaist = sorted.find((m) => m.waistCm !== undefined)
@@ -253,14 +264,17 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
       </section>
 
       <section className="progress-history">
-        <div className="section-title">
+        <div className="section-title progress-history__header">
           <span className="section-title__text">Historial</span>
+          <select className="progress-history__month" aria-label="Mes del historial" value={historyMonth} onChange={(event) => setHistoryMonth(event.target.value)}>
+            {historyMonths.map((month) => <option key={month} value={month}>{formatMonth(month)}</option>)}
+          </select>
         </div>
         <div className="progress-history__list">
-          {sorted.length === 0 ? (
-            <span className="progress-card__empty">Sin mediciones</span>
+          {historyMeasurements.length === 0 ? (
+            <span className="progress-card__empty">Sin registros este mes</span>
           ) : (
-            sorted.map((item) => (
+            historyMeasurements.map((item) => (
               <div className="progress-history__row" key={item.id}>
                 <div className="progress-history__content">
                 <span className="progress-history__date">{formatDate(item.date)}</span>

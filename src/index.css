@@ -1523,6 +1523,26 @@ button {
   margin-top: 8px;
 }
 
+.progress-history__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.progress-history__month {
+  margin-left: auto;
+  max-width: 100%;
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  color: var(--text);
+  padding: var(--padding-control);
+  font-size: 16px;
+}
+
 .progress-history__row {
   display: flex;
   align-items: center;
@@ -1568,29 +1588,30 @@ button {
 
 .user-preferences h2 { margin: 0; }
 .user-preferences__label { margin: 16px 0 12px; color: var(--text); font-size: 14px; font-weight: 700; }
-.user-preferences__colors { display: flex; flex-wrap: wrap; gap: 10px 6px; }
+.user-preferences__colors { display: flex; flex-wrap: nowrap; justify-content: space-between; align-items: center; }
 .user-preferences__color {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 44px;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 44px;
-  padding: var(--padding-control);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
+  padding: 8px 0;
+  border: 0;
+  border-radius: 50%;
   background: transparent;
+  box-shadow: none;
   color: var(--text);
   font: inherit;
   cursor: pointer;
   touch-action: manipulation;
 }
-.user-preferences__color[aria-pressed='true'] { border-color: var(--border-subtle); background: var(--accent-light); }
-.user-preferences__color:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.user-preferences__color:focus-visible { outline: none; }
+.user-preferences__color:focus-visible .user-preferences__swatch { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
 .user-preferences__color:disabled { cursor: wait; }
 .user-preferences__swatch { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; }
 .user-preferences__swatch svg { background: var(--panel); border-radius: 50%; padding: 2px; }
-.user-preferences__color-name { font-size: 10px; font-weight: 700; }
+.user-preferences__color-name { display: none; }
 .user-preferences__status { display: block; margin-top: 12px; color: var(--text-soft); font-size: 12px; }
 .user-preferences .error-text { display: block; margin-top: 8px; }
 
