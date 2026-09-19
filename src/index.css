@@ -48,9 +48,16 @@ body {
 .goal-comparison__head { font-size: 12px; font-weight: 800; color: var(--text-soft); }
 .goal-comparison__row > label { grid-column: 1 / -1; }
 .goal-comparison__row > input { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; font-size: 16px; }
-.goal-comparison__value { font-size: 14px; overflow-wrap: anywhere; color: var(--text-soft); }
-.goal-recommendation-note { margin: 4px 0; font-size: 12px; line-height: 1.5; color: var(--text-soft); }
-.goal-recommendation-note > span { display: block; margin-top: 4px; }
+.goal-comparison__value { font-size: 14px; overflow-wrap: anywhere; color: var(--text-soft); text-align: right; font-variant-numeric: tabular-nums; }
+.goal-comparison__heading { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; text-align: right; }
+.goal-info-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--text-soft); }
+.goal-info-button > span { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid currentColor; border-radius: 50%; font-size: 12px; font-weight: 700; }
+.goal-info-button:focus-visible { outline: 2px solid var(--green-strong); border-radius: 8px; }
+dialog.info-dialog { box-sizing: border-box; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; border: 0; color: var(--text); }
+.info-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.info-dialog__content { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.info-dialog__content ul { padding-left: 20px; }
+.info-dialog__content li + li { margin-top: 8px; }
 
 button,
 input {

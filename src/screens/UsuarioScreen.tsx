@@ -4,6 +4,7 @@ import { activitiesRepository, goalsRepository, measurementsRepository, profileR
 import { calculateGoalRecommendations, roundRecommendation, type GoalRecommendations } from '../goalRecommendations'
 import type { BodyMeasurement, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { InfoDialog } from '../components/InfoDialog'
 import { UserPreferencesSection } from '../components/UserPreferencesSection'
 import type { useUserPreferences } from '../useUserPreferences'
 
@@ -12,12 +13,12 @@ function formatDate(value: string) { return new Date(`${value}T12:00:00`).toLoca
 function format(value: number, unit: string) { return `${new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(value)} ${unit}` }
 type EditorMode = 'physical' | 'goals'
 const goalFields = [
-  ['targetWeightKg', 'Peso objetivo (kg)'],
-  ['targetWaistCm', 'Cintura objetivo (cm)'],
-  ['targetDeficitKcal', 'Déficit objetivo (kcal/día)'],
-  ['targetProteinG', 'Proteínas diarias (g)'],
-  ['targetCarbsG', 'Hidratos diarios (g)'],
-  ['targetFatG', 'Grasas diarias (g)'],
+  ['targetWeightKg', <>Peso objetivo (<span style={{ textTransform: 'none' }}>kg</span>)</>],
+  ['targetWaistCm', <>Cintura objetivo (<span style={{ textTransform: 'none' }}>cm</span>)</>],
+  ['targetDeficitKcal', <>Déficit objetivo (<span style={{ textTransform: 'none' }}>kcal/día</span>)</>],
+  ['targetProteinG', <>Proteínas diarias (<span style={{ textTransform: 'none' }}>g</span>)</>],
+  ['targetCarbsG', <>Hidratos diarios (<span style={{ textTransform: 'none' }}>g</span>)</>],
+  ['targetFatG', <>Grasas diarias (<span style={{ textTransform: 'none' }}>g</span>)</>],
 ] as const
 
 function parse(value: string) { return value.trim() === '' ? undefined : Number(value.trim().replace(',', '.')) }
@@ -33,6 +34,7 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
   const [recommendations, setRecommendations] = useState<GoalRecommendations | null>(null)
   const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   const [recommendationsError, setRecommendationsError] = useState(false)
+  const [recommendationInfoOpen, setRecommendationInfoOpen] = useState(false)
   const today = todayIsoLocal()
   const weight = getLatestWeightForDate(measurements, today)
   const age = getAgeAtDate(goals.birthDate, today)
@@ -111,7 +113,7 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
             </select>
             <label className="food-modal__label" htmlFor="physical-birth-date">Fecha de nacimiento</label>
             <input id="physical-birth-date" className="food-modal__quantity" type="date" disabled={saving} value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} />
-            <label className="food-modal__label" htmlFor="physical-height">Altura (cm)</label>
+            <label className="food-modal__label" htmlFor="physical-height">Altura (<span style={{ textTransform: 'none' }}>cm</span>)</label>
             <input id="physical-height" className="food-modal__quantity" inputMode="decimal" disabled={saving} value={form.heightCm} onChange={(event) => setForm({ ...form, heightCm: event.target.value })} />
           </> : <>
           {goalFields.slice(0, 2).map(([key, label]) => <label key={key} className="usuario-form__field">
@@ -119,7 +121,7 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
             <input className="food-modal__quantity" inputMode="decimal" disabled={saving} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
           </label>)}
           <div className="goal-comparison">
-            <div className="goal-comparison__head"><span>Tu objetivo</span><span>Recomendación</span></div>
+            <div className="goal-comparison__head"><span>Tu objetivo</span><span className="goal-comparison__heading">Recomendación<button type="button" className="goal-info-button" aria-label="Información sobre la recomendación" onClick={() => setRecommendationInfoOpen(true)}><span aria-hidden="true">i</span></button></span></div>
             {goalFields.slice(2).map(([key, label]) => {
               const metric = key === 'targetDeficitKcal' ? recommendations?.recommendedDeficit
                 : key === 'targetProteinG' ? recommendations?.recommendedProtein
@@ -132,11 +134,6 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
               </div>
             })}
           </div>
-          <p className="goal-recommendation-note">Recomendación basada en tu peso actual y gasto medio de los últimos 7 días completos.
-            {recommendations && recommendations.validDayCount > 0 && <span>Calculada con {recommendations.validDayCount} de 7 días válidos ({formatDate(recommendations.range.start)}–{formatDate(recommendations.range.end)}).</span>}
-            <span>Déficit 15% · proteína 2,0 g/kg · grasas 0,8 g/kg · hidratos según energía restante.</span>
-            {recommendationsError && <span>No se pudieron cargar las recomendaciones. Vuelve a abrir el editor para reintentarlo.</span>}
-          </p>
           </>}
           {error && <span className="error-text">{error}</span>}
           <div className="food-modal__confirm">
@@ -146,5 +143,16 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
         </div>
       </div>
     </div>}
+    {editing === 'goals' && recommendationInfoOpen && <InfoDialog title="Cómo calculamos la recomendación" onClose={() => setRecommendationInfoOpen(false)}>
+      <ul>
+        <li>Déficit diario: 15% del gasto energético medio diario reciente.</li>
+        <li>Proteína: 2,0 g por kg de peso corporal actual.</li>
+        <li>Grasas: 0,8 g por kg de peso corporal actual.</li>
+        <li>Hidratos: las kcal restantes después de proteína y grasas.</li>
+        <li>Gasto medio: calculado con los últimos 7 días completos disponibles, anteriores a hoy. Si faltan datos, se usan solo los días válidos.</li>
+        <li>Peso: se usa la medición más reciente válida, sin incluir mediciones futuras.</li>
+      </ul>
+      <p>Estas recomendaciones son orientativas y no sustituyen los objetivos que decidas guardar.</p>
+    </InfoDialog>}
   </section>
 }

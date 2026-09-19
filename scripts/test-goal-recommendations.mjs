@@ -101,6 +101,7 @@ const { UsuarioScreen } = loadModule('screens/UsuarioScreen', {
     activitiesRepository: { list: async () => { activityReads++; return input.activities } },
   },
   '../components/ScreenHeader': { ScreenHeader: 'header' },
+  '../components/InfoDialog': { InfoDialog: 'info-dialog' },
   '../components/UserPreferencesSection': { UserPreferencesSection: 'preferences' },
 }, 'tsx')
 function render() {
