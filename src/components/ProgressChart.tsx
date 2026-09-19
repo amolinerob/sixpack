@@ -1,4 +1,5 @@
 import { getChartDomain, type ProgressPoint } from '../progressSeries'
+import { chartLayout } from '../chartTheme'
 
 type Props = {
   points: ProgressPoint[]
@@ -16,9 +17,7 @@ export function ProgressChart({ points, trend, target, unit }: Props) {
   if (points.length < 2) return null
 
   const domain = getChartDomain(points, trend, target)!
-  const width = 320
-  const height = 142
-  const inset = { top: 14, right: 12, bottom: 26, left: 34 }
+  const { width, height, inset } = chartLayout
   const chartWidth = width - inset.left - inset.right
   const chartHeight = height - inset.top - inset.bottom
   const firstDate = points[0].date
@@ -36,9 +35,10 @@ export function ProgressChart({ points, trend, target, unit }: Props) {
       {target !== undefined && <><line className="progress-chart__target" x1={inset.left} x2={width - inset.right} y1={y(target)} y2={y(target)} /><text className="progress-chart__target-label" x={width - inset.right} y={y(target) - 4} textAnchor="end">Objetivo</text></>}
       <path className="progress-chart__actual-line" d={path(points)} />
       {trend.length >= 2 && <path className="progress-chart__trend-line" d={path(trend)} />}
-      {points.map((point) => <circle className="progress-chart__point" cx={x(point.date)} cy={y(point.value)} r="2.5" key={`${point.date}-${point.value}`} />)}
-      <text className="progress-chart__axis-label" x="0" y={y(domain.max) + 4}>{domain.max.toFixed(1)} {unit}</text>
-      <text className="progress-chart__axis-label" x="0" y={y(domain.min) + 4}>{domain.min.toFixed(1)}</text>
+      {points.map((point) => <circle className="progress-chart__point" cx={x(point.date)} cy={y(point.value)} r={chartLayout.pointRadius} key={`${point.date}-${point.value}`} />)}
+      <text className="progress-chart__axis-label" x="0" y="13">{unit}</text>
+      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.max) + 4}>{domain.max.toFixed(1)}</text>
+      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.min) + 4}>{domain.min.toFixed(1)}</text>
       <text className="progress-chart__date-label" x={inset.left} y={height - 6}>{formatShortDate(firstDate)}</text>
       <text className="progress-chart__date-label" x={width - inset.right} y={height - 6} textAnchor="end">{formatShortDate(lastDate)}</text>
     </svg>

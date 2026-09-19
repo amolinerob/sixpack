@@ -1,0 +1,51 @@
+.screen-progreso {
+  --chart-axis-size: 11px;
+  --chart-legend-size: 11px;
+  --chart-title-size: 12px;
+  --chart-text: var(--text-soft);
+  --chart-grid: var(--line);
+  --chart-line-width: 2;
+  --chart-secondary-width: 1.2;
+}
+
+.screen-progreso :is(.progress-chart, .weekly-macros__chart) {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 0;
+  font-family: var(--font);
+}
+.screen-progreso :is(.progress-chart__axis-label, .progress-chart__date-label, .progress-chart__target-label, .weekly-macros__axis) {
+  fill: var(--chart-text);
+  font-size: var(--chart-axis-size);
+  font-weight: 400;
+}
+.screen-progreso :is(.progress-chart__guide, .weekly-macros__grid) {
+  stroke: var(--chart-grid);
+  stroke-width: .75;
+  opacity: .65;
+}
+.screen-progreso :is(.progress-chart__trend-line, .weekly-macros__line) {
+  stroke-width: var(--chart-line-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.screen-progreso :is(.progress-chart__actual-line, .progress-chart__target, .progress-chart__point, .weekly-macros__reference, .weekly-activity-chart__average) {
+  stroke-width: var(--chart-secondary-width);
+}
+.screen-progreso :is(.weekly-macros__legend, .weekly-macros__styles, .weekly-macros__note) {
+  font-size: var(--chart-legend-size);
+  font-weight: 400;
+  color: var(--chart-text);
+  line-height: 1.4;
+}
+.screen-progreso .weekly-macros__legend { gap: 6px 12px; }
+.screen-progreso .weekly-macros__legend i { width: 8px; height: 8px; }
+.screen-progreso .weekly-macros__styles i { width: 18px; height: 0; border-top-width: 1.2px; }
+.screen-progreso :is(.evolution-card__title, .weekly-macros > .weekly-card__title, .weekly-activity-chart > .weekly-card__title) {
+  font-size: var(--chart-title-size);
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.screen-progreso .weekly-activity-chart__bar { fill: var(--accent); }
+.screen-progreso .weekly-activity-chart__average { stroke: var(--chart-text); opacity: .65; }

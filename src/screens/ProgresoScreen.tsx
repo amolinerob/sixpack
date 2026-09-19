@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ProgressChart } from '../components/ProgressChart'
+import { WeeklyMacrosChart } from '../components/WeeklyMacrosChart'
+import { WeeklyActivityChart } from '../components/WeeklyActivityChart'
+import { getWeeklyActivitySeries } from '../weeklyActivitySeries'
 import { calculateMovingAverage, calculatePeriodChange, filterPointsByPeriod, getMeasurementPoints, type ProgressPeriod } from '../progressSeries'
 import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySummary'
 import { activitiesRepository, diaryRepository, goalsRepository, measurementsRepository, profileRepository } from '../data/cloud/repositories'
@@ -242,7 +245,9 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
         </div>
         <WeeklyEnergyCard summary={weeklySummary} goals={goals} />
         <WeeklyNutritionCard summary={weeklySummary} goals={goals} />
+        <WeeklyMacrosChart summary={weeklySummary} goals={goals} />
         <WeeklyActivityCard summary={weeklySummary} />
+        <WeeklyActivityChart key={weeklySummary.range.start} data={getWeeklyActivitySeries(weeklySummary)} />
         <WeeklyBodyCard summary={weeklySummary} />
         <WeeklyDays summary={weeklySummary} />
       </section>
