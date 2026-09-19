@@ -19,13 +19,10 @@ export function calculateGoalRecommendations({ today, profile, measurements, act
   activities: ActivityEntry[]
 }) {
   const range = { start: daysBefore(today, 7), end: daysBefore(today, 1) }
-  const validMeasurements = measurements.filter((measurement) => positive(measurement.weightKg))
-  const currentWeightKg = getLatestWeightForDate(validMeasurements, today)
+  const currentWeightKg = getLatestWeightForDate(measurements, today)
   // Reuse both historical daily energy and activity aggregation, without changing either.
-  const summary = createWeeklySummary({ range, today, goals: profile, measurements: validMeasurements, activities, entries: [] })
-  const validDays = summary.days.filter((day) =>
-    positive(day.energy?.estimatedDailyExpenditure)
-    && day.activities.every((activity) => Number.isFinite(activity.calories) && activity.calories >= 0))
+  const summary = createWeeklySummary({ range, today, goals: profile, measurements, activities, entries: [] })
+  const validDays = summary.days.filter((day) => positive(day.energy?.estimatedDailyExpenditure))
   const averageExpenditure = validDays.length
     ? validDays.reduce((sum, day) => sum + day.energy!.estimatedDailyExpenditure, 0) / validDays.length
     : undefined

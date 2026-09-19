@@ -1,4 +1,4 @@
-import { calculateDailyEnergyBalance } from './energy'
+import { calculateDailyEnergyBalance, calculateEstimatedDeficit, getActiveKcalForDate } from './energy'
 import type { ActivityEntry, BodyMeasurement, FoodDiaryEntry, UserGoals } from './types'
 
 export type WeekSummary = ReturnType<typeof createWeeklySummary>
@@ -40,7 +40,7 @@ export function createWeeklySummary({ range, today, entries, activities, measure
       fat: total.fat + entry.fat,
     }), { kcal: 0, protein: 0, carbs: 0, fat: 0 })
     const dayActivities = activities.filter((activity) => activity.date === date)
-    const activeCalories = dayActivities.reduce((total, activity) => total + activity.calories, 0)
+    const activeCalories = getActiveKcalForDate(activities, date)
     const energy = calculateDailyEnergyBalance({ goals, measurements, referenceDate: date, consumedCalories: intake.kcal, activityCalories: activeCalories })
     return { date, intake, activities: dayActivities, activeCalories, energy }
   })
@@ -50,7 +50,7 @@ export function createWeeklySummary({ range, today, entries, activities, measure
   }), { kcal: 0, protein: 0, carbs: 0, fat: 0, activeCalories: 0 })
   const calculated = daily.filter((day) => day.energy !== undefined)
   const totalExpenditure = calculated.reduce((total, day) => total + day.energy!.estimatedDailyExpenditure, 0)
-  const totalDeficit = totalExpenditure - sum.kcal
+  const totalDeficit = calculateEstimatedDeficit(totalExpenditure, sum.kcal)
   // Un balance parcial no representa el déficit de todos los días incluidos.
   const energyComplete = daily.length > 0 && calculated.length === daily.length
   const weekMeasurements = measurements.filter((measurement) => measurement.date >= range.start && measurement.date <= activeEnd)

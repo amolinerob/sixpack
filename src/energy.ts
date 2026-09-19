@@ -1,4 +1,18 @@
-import type { BodyMeasurement, UserGoals } from './types'
+import type { ActivityEntry, BodyMeasurement, UserGoals } from './types'
+
+export function isValidWeight(value: number | undefined): value is number {
+  return value !== undefined && Number.isFinite(value) && value > 0
+}
+
+export function isValidActiveKcal(value: number): boolean {
+  return Number.isFinite(value) && value >= 0
+}
+
+export function getActiveKcalForDate(activities: ActivityEntry[], referenceDate: string): number {
+  return activities.reduce((total, activity) =>
+    activity.date === referenceDate && isValidActiveKcal(activity.calories)
+      ? total + activity.calories : total, 0)
+}
 
 export function getAgeAtDate(birthDate: string | undefined, referenceDate: string): number | undefined {
   if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return undefined
@@ -24,7 +38,7 @@ export function getAgeAtDate(birthDate: string | undefined, referenceDate: strin
 
 export function getLatestWeightForDate(measurements: BodyMeasurement[], referenceDate: string): number | undefined {
   return measurements
-    .filter((measurement) => measurement.date <= referenceDate && measurement.weightKg !== undefined)
+    .filter((measurement) => measurement.date <= referenceDate && isValidWeight(measurement.weightKg))
     .sort((a, b) => b.date.localeCompare(a.date))[0]
     ?.weightKg
 }

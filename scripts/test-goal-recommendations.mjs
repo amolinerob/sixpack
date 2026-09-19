@@ -59,7 +59,7 @@ for (const measurements of [[], [measurement('2026-09-20', 82)], [measurement('2
 assert.equal(calculate({ ...input, profile: {} }).recommendedProtein, undefined)
 assert.equal(calculate({ ...input, profile: { ...profile, heightCm: Infinity } }).recommendedDeficit, undefined)
 assert.equal(calculate({ ...input, measurements: [...input.measurements, measurement('2026-09-19', 500)] }).recommendedCarbs, undefined)
-assert.equal(calculate({ ...input, activities: [activity('2026-09-18', Infinity)] }).validDayCount, 6)
+assert.equal(calculate({ ...input, activities: [activity('2026-09-18', Infinity)] }).validDayCount, 7)
 for (const value of [NaN, Infinity, -5, 0, undefined]) assert.equal(round(value, 5), undefined)
 const changedGoals = calculate({ ...input, profile: { ...profile, targetProteinG: 180, targetWeightKg: 50 } })
 assert.equal(changedGoals.recommendedProtein, 164)

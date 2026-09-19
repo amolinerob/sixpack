@@ -1,7 +1,7 @@
 import { DailyBalanceBars } from '../components/DailyBalanceBars'
 import { parseDecimalFromSpanishInput } from '../numericInput'
 import { useEffect, useMemo, useState } from 'react'
-import { calculateDailyEnergyBalance } from '../energy'
+import { calculateDailyEnergyBalance, getActiveKcalForDate } from '../energy'
 import type { FoodItem } from '../data/foods'
 import { activitiesRepository, diaryRepository, foodsRepository, goalsRepository, measurementsRepository, mealsRepository, profileRepository } from '../data/cloud/repositories'
 import { ACTIVITY_TYPES, MEALS, type ActivityEntry, type ActivityType, type BodyMeasurement, type FoodDiaryEntry, type Meal, type MealDiarySnapshot, type MealIngredient, type MealName, type User, type UserGoals } from '../types'
@@ -134,8 +134,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   )
 
   const activityTotal = useMemo(() => {
-    return dateActivities.reduce((sum, activity) => sum + activity.calories, 0)
-  }, [dateActivities])
+    return getActiveKcalForDate(activities, selectedDate)
+  }, [activities, selectedDate])
 
   const totals = useMemo(() => {
     return dateEntries.reduce(
