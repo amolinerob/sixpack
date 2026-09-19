@@ -86,9 +86,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   const [selectedFoodId, setSelectedFoodId] = useState('')
   const [selectedMealId, setSelectedMealId] = useState('')
   const [entryKind, setEntryKind] = useState<'food' | 'meal'>('food')
-  const [quantityGrams, setQuantityGrams] = useState<number>(
-    100,
-  )
+  const [quantityDraft, setQuantityDraft] = useState('100')
+  const [quantityError, setQuantityError] = useState('')
+  const parsedQuantity = parseDecimalFromSpanishInput(quantityDraft)
+  const quantityGrams = Number.isFinite(parsedQuantity) ? parsedQuantity : 0
   const [draftMeal, setDraftMeal] = useState<MealName>('Desayuno')
   const [activityType, setActivityType] = useState<ActivityType>('CrossFit')
   const [activityMinutes, setActivityMinutes] = useState('60')
@@ -184,7 +185,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     setEntryKind('food')
     setSelectedFoodId(food.id)
     setSelectedMealId(sharedMeals[0]?.id ?? '')
-    setQuantityGrams(firstQuantity ?? 100)
+    setQuantityDraft(String(firstQuantity ?? 100))
+    setQuantityError('')
     setSearchName('')
     setEditingId(null)
     setSelectorOpen(true)
@@ -204,8 +206,9 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
       const food = getFoodById(entry.foodId ?? '', foods)
       setEntryKind('food')
       setSelectedFoodId(food.id)
-      setQuantityGrams(entry.quantityGrams)
+      setQuantityDraft(String(entry.quantityGrams))
     }
+    setQuantityError('')
     setSelectorOpen(true)
   }
 
@@ -218,7 +221,8 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     const food = getFoodById(foodId, foods)
     const serving = getServingGramsInitial(food)
     setSelectedFoodId(food.id)
-    setQuantityGrams(serving ?? fallbackQuantity)
+    setQuantityDraft(String(serving ?? fallbackQuantity))
+    setQuantityError('')
   }
 
   async function confirmEntry() {
@@ -232,7 +236,12 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
 
     const food = getFoodById(selectedFoodId, foods)
     if (!food) return
-    const quantity = Math.max(0, quantityGrams)
+    const enteredQuantity = parseDecimalFromSpanishInput(quantityDraft)
+    if (quantityDraft.trim() === '' || !Number.isFinite(enteredQuantity) || enteredQuantity < 0) {
+      setQuantityError('Introduce una cantidad válida mayor o igual que cero.')
+      return
+    }
+    const quantity = Math.max(0, enteredQuantity)
     const kcal = (food.kcal100g / 100) * quantity
     const protein = (food.protein100g / 100) * quantity
     const carbs = (food.carbs100g / 100) * quantity
@@ -450,11 +459,20 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
         <div className="meal-list">
           {MEALS.map((meal) => {
             const mealEntries = dateEntries.filter((entry) => entry.meal === meal)
+            const mealTotals = mealEntries.reduce((total, entry) => ({
+              kcal: total.kcal + entry.kcal,
+              protein: total.protein + entry.protein,
+              carbs: total.carbs + entry.carbs,
+              fat: total.fat + entry.fat,
+            }), { kcal: 0, protein: 0, carbs: 0, fat: 0 })
             return (
               <article className="meal-group" key={meal}>
                 <div className="meal-row">
                   <div className="meal-row__left">
                     <span className="meal-row__label">{meal}</span>
+                    <span className="meal-row__macros">
+                      {formatMealMacro(mealTotals.kcal)}kcal · {formatMealMacro(mealTotals.protein)} P · {formatMealMacro(mealTotals.carbs)} HC · {formatMealMacro(mealTotals.fat)} G
+                    </span>
                   </div>
                   <button className="meal-row__add" aria-label={`Añadir ${meal}`} onClick={() => openSelector(meal)}>
                     +
@@ -638,14 +656,12 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                 <div className="food-modal__input-area">
                   <label className="food-modal__label">Cantidad consumida ({selectedFood.servingUnit === 'g' && selectedFood.servingGrams ? 'g' : selectedFood.servingUnit ?? 'unidad'})</label>
                   <input className="food-modal__quantity"
-                    type="number"
-                    min="0"
-                    value={quantityGrams}
-                    onChange={(event) => setQuantityGrams(Number(event.target.value))}
+                    type="text"
+                    inputMode="decimal"
+                    value={quantityDraft}
+                    onChange={(event) => { setQuantityDraft(event.target.value); setQuantityError('') }}
                   />
-                  {selectedFood.servingUnit === 'g' && selectedFood.servingGrams ? (
-                    <span className="food-modal__equivalence">{selectedFood.servingGrams} g = {selectedFood.servingHabitual}</span>
-                  ) : null}
+                  {quantityError && <span className="error-text" role="alert">{quantityError}</span>}
                   {selectedFood.servingUnit && selectedFood.servingUnit !== 'g' && selectedFood.servingGrams == null ? (
                     <span className="food-modal__equivalence">Ración sin conversión fiable: {selectedFood.servingHabitual}</span>
                   ) : null}
@@ -655,7 +671,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                   <div className="food-macro-table">
                     <div className="food-macro-table__row food-macro-table__row--head">
                       <span>Resultado</span>
-                      <span>{round(quantityGrams)} g</span>
+                      <span style={{ textTransform: 'none' }}>{round(quantityGrams)} g</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Kcal</span>
@@ -785,6 +801,10 @@ function formatDuration(minutes: number) {
 
 function round(value: number) {
   return Math.round(value * 100) / 100
+}
+
+function formatMealMacro(value: number) {
+  return Number(value.toFixed(1)).toString()
 }
 
 function formatDisplayDate(dateKey: string) {

@@ -921,6 +921,21 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.meal-row__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  min-width: 0;
+  padding: 8px 12px 8px 0;
+}
+
+.meal-row__macros {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .meal-row__label {
   color: var(--text);
   font-size: 14px;
@@ -928,6 +943,7 @@ button {
 }
 
 .meal-row__add {
+  flex-shrink: 0;
   width: 36px;
   height: 36px;
   border-radius: 50%;

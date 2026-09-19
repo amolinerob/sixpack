@@ -245,10 +245,6 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
                   </div>
 
                   <div className="food-macro-table">
-                    <div className="food-macro-table__row food-macro-table__row--head">
-                      <span>100 g</span>
-                      <span>Valor</span>
-                    </div>
                     <div className="food-macro-table__row">
                       <span>Kcal</span>
                       <span>{selectedFood.kcal100g} kcal</span>
