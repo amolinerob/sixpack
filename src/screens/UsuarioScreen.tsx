@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { calculateBmr, getAgeAtDate, getLatestWeightForDate } from '../energy'
-import { goalsRepository, measurementsRepository, profileRepository } from '../data/cloud/repositories'
+import { activitiesRepository, goalsRepository, measurementsRepository, profileRepository } from '../data/cloud/repositories'
+import { calculateGoalRecommendations, roundRecommendation, type GoalRecommendations } from '../goalRecommendations'
 import type { BodyMeasurement, User, UserGoals } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { UserPreferencesSection } from '../components/UserPreferencesSection'
@@ -29,6 +30,9 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState<Record<string, string>>({})
+  const [recommendations, setRecommendations] = useState<GoalRecommendations | null>(null)
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false)
+  const [recommendationsError, setRecommendationsError] = useState(false)
   const today = todayIsoLocal()
   const weight = getLatestWeightForDate(measurements, today)
   const age = getAgeAtDate(goals.birthDate, today)
@@ -42,7 +46,23 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [activeUser.id])
+  useEffect(() => {
+    if (editing !== 'goals') return
+    let active = true
+    Promise.all([profileRepository.get(activeUser.id), measurementsRepository.list(activeUser.id), activitiesRepository.list(activeUser.id)])
+      .then(([currentProfile, currentMeasurements, activities]) => {
+        if (active) setRecommendations(calculateGoalRecommendations({ today: todayIsoLocal(), profile: currentProfile, measurements: currentMeasurements, activities }))
+      })
+      .catch(() => { if (active) setRecommendationsError(true) })
+      .finally(() => { if (active) setRecommendationsLoading(false) })
+    return () => { active = false }
+  }, [activeUser.id, editing])
   function openEdit(mode: EditorMode) {
+    if (mode === 'goals') {
+      setRecommendations(null)
+      setRecommendationsLoading(true)
+      setRecommendationsError(false)
+    }
     setForm(mode === 'physical'
       ? { sex: goals.sex ?? '', birthDate: goals.birthDate ?? '', heightCm: goals.heightCm?.toString() ?? '' }
       : Object.fromEntries(goalFields.map(([key]) => [key, goals[key]?.toString() ?? ''])))
@@ -93,10 +113,31 @@ export function UsuarioScreen({ activeUser, onUserClick, onSignOut, preferences 
             <input id="physical-birth-date" className="food-modal__quantity" type="date" disabled={saving} value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} />
             <label className="food-modal__label" htmlFor="physical-height">Altura (cm)</label>
             <input id="physical-height" className="food-modal__quantity" inputMode="decimal" disabled={saving} value={form.heightCm} onChange={(event) => setForm({ ...form, heightCm: event.target.value })} />
-          </> : goalFields.map(([key, label]) => <label key={key} className="usuario-form__field">
+          </> : <>
+          {goalFields.slice(0, 2).map(([key, label]) => <label key={key} className="usuario-form__field">
             <span className="food-modal__label">{label}</span>
             <input className="food-modal__quantity" inputMode="decimal" disabled={saving} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
           </label>)}
+          <div className="goal-comparison">
+            <div className="goal-comparison__head"><span>Tu objetivo</span><span>Recomendación</span></div>
+            {goalFields.slice(2).map(([key, label]) => {
+              const metric = key === 'targetDeficitKcal' ? recommendations?.recommendedDeficit
+                : key === 'targetProteinG' ? recommendations?.recommendedProtein
+                : key === 'targetCarbsG' ? recommendations?.recommendedCarbs : recommendations?.recommendedFat
+              const value = roundRecommendation(metric, key === 'targetDeficitKcal' ? 10 : 5)
+              return <div className="goal-comparison__row" key={key}>
+                <label className="food-modal__label" htmlFor={`goal-${key}`}>{label}</label>
+                <input id={`goal-${key}`} className="food-modal__quantity" inputMode="decimal" disabled={saving} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
+                <span className="goal-comparison__value" aria-live="polite">{recommendationsLoading ? 'Calculando…' : recommendationsError ? 'No disponible' : value === undefined ? 'Datos insuficientes' : format(value, key === 'targetDeficitKcal' ? 'kcal' : 'g')}</span>
+              </div>
+            })}
+          </div>
+          <p className="goal-recommendation-note">Recomendación basada en tu peso actual y gasto medio de los últimos 7 días completos.
+            {recommendations && recommendations.validDayCount > 0 && <span>Calculada con {recommendations.validDayCount} de 7 días válidos ({formatDate(recommendations.range.start)}–{formatDate(recommendations.range.end)}).</span>}
+            <span>Déficit 15% · proteína 2,0 g/kg · grasas 0,8 g/kg · hidratos según energía restante.</span>
+            {recommendationsError && <span>No se pudieron cargar las recomendaciones. Vuelve a abrir el editor para reintentarlo.</span>}
+          </p>
+          </>}
           {error && <span className="error-text">{error}</span>}
           <div className="food-modal__confirm">
             <button className="secondary-button" disabled={saving} onClick={closeEdit}>Cancelar</button>

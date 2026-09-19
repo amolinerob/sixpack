@@ -43,6 +43,15 @@ body {
 .auth-loading { color: var(--text-soft); font-size: 14px; font-weight: 700; }
 .usuario-signout { width: 100%; }
 
+.goal-comparison { display: grid; gap: 14px; min-width: 0; }
+.goal-comparison__head, .goal-comparison__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; align-items: center; }
+.goal-comparison__head { font-size: 12px; font-weight: 800; color: var(--text-soft); }
+.goal-comparison__row > label { grid-column: 1 / -1; }
+.goal-comparison__row > input { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; font-size: 16px; }
+.goal-comparison__value { font-size: 14px; overflow-wrap: anywhere; color: var(--text-soft); }
+.goal-recommendation-note { margin: 4px 0; font-size: 12px; line-height: 1.5; color: var(--text-soft); }
+.goal-recommendation-note > span { display: block; margin-top: 4px; }
+
 button,
 input {
   font: inherit;
