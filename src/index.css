@@ -42,7 +42,6 @@ body {
 .auth-card input { min-height: 44px; border: 1px solid var(--line); border-radius: 14px; background: var(--sage-light); color: var(--text); padding: 10px 12px; }
 .auth-loading { color: var(--text-soft); font-size: 14px; font-weight: 700; }
 .usuario-signout { width: 100%; }
-.cloud-migration { display: grid; gap: 12px; }
 
 button,
 input {

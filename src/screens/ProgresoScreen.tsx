@@ -77,8 +77,8 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
 
   const latestWeight = sorted.find((m) => m.weightKg !== undefined)
   const latestWaist = sorted.find((m) => m.waistCm !== undefined)
-  const firstWeight = sorted.find((m) => m.weightKg !== undefined)
-  const firstWaist = sorted.find((m) => m.waistCm !== undefined)
+  const firstWeight = [...sorted].reverse().find((m) => m.weightKg !== undefined)
+  const firstWaist = [...sorted].reverse().find((m) => m.waistCm !== undefined)
   const evolutionReferenceDate = todayIsoLocal()
   const weightEvolution = useMemo(() => {
     const points = filterPointsByPeriod(getMeasurementPoints(measurements, 'weightKg'), evolutionPeriod, evolutionReferenceDate)
