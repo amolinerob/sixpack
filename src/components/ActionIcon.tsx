@@ -4,17 +4,16 @@ type IconActionButtonProps = { name: 'edit' | 'delete'; ariaLabel: string; onCli
 /** Iconos de acción vectoriales compartidos para editar y eliminar registros. */
 export function ActionIcon({ name, size = 22 }: ActionIconProps) {
   if (name === 'edit') {
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20H5a1 1 0 0 1-1-1v-4.5L15.5 3a2.1 2.1 0 0 1 3 3L7 17.5" />
-      <path d="m13.5 5 5.5 5.5" />
+    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m14.5 4.5-10 10-1 6 6-1 10-10a3.54 3.54 0 0 0-5-5Z" />
+      <path d="m13 6 5 5" />
     </svg>
   }
 
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M4 7h16" />
-    <path d="M10 11v6M14 11v6" />
-    <path d="M6.5 7 7.4 20h9.2l.9-13" />
-    <path d="M9 7V4h6v3" />
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M4 6.5h16M9 6.5v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    <path d="m6 6.5.9 12.1a2 2 0 0 0 2 1.9h6.2a2 2 0 0 0 2-1.9L18 6.5" />
+    <path d="M10 10.5v6M14 10.5v6" />
   </svg>
 }
 
