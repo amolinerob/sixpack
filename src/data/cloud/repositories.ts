@@ -1,9 +1,44 @@
 import { supabase } from '../../lib/supabase'
 import type { FoodItem } from '../foods'
-import type { AccentColor, ActivityEntry, BodyMeasurement, FoodDiaryEntry, Meal, MealIngredient, UserGoals, UserPreferences } from '../../types'
+import type { AccentColor, ActivityEntry, ActivityIntentionType, BodyMeasurement, FoodDiaryEntry, Meal, MealIngredient, UserGoals, UserPreferences } from '../../types'
+import { isActivityIntentionType, isValidActivityDate } from '../../activityEstimation'
 import { isAccentColor } from '../../theme'
 
 type ProfileData = { id: string; displayName: string; sex?: UserGoals['sex']; birthDate?: string; heightCm?: number }
+
+function intentionError(error: { code?: string; message: string }): never {
+  if (['42P01', 'PGRST205', '42883', 'PGRST202'].includes(error.code ?? '')) {
+    throw new Error('Actividad prevista aún no está disponible. Ejecuta 202609240001_daily_activity_intentions.sql en Supabase y vuelve a intentarlo.')
+  }
+  throw new Error(`No se pudo cargar o guardar la planificación. ${error.message}`)
+}
+
+function intentionTypes(rows: { activity_type: unknown }[]): ActivityIntentionType[] {
+  return rows.map((row) => {
+    if (!isActivityIntentionType(row.activity_type)) throw new Error('La planificación guardada contiene un tipo no válido.')
+    return row.activity_type
+  })
+}
+
+export const dailyActivityIntentionsRepository = {
+  async get(userId: string, date: string): Promise<ActivityIntentionType[]> {
+    if (!isValidActivityDate(date)) throw new Error('Fecha de planificación inválida.')
+    const response = await supabase.from('daily_activity_intentions').select('activity_type').eq('user_id', userId).eq('intention_date', date)
+    if (response.error) intentionError(response.error)
+    return intentionTypes(response.data ?? [])
+  },
+  async save(userId: string, date: string, types: ActivityIntentionType[]): Promise<ActivityIntentionType[]> {
+    if (!isValidActivityDate(date) || !types.every(isActivityIntentionType)
+      || (types.includes('Descanso') && types.some((type) => type !== 'Descanso'))) throw new Error('Planificación inválida.')
+    const response = await supabase.rpc('set_daily_activity_intentions', { p_user_id: userId, p_date: date, p_types: [...new Set(types)] })
+    if (response.error && types.includes('Carrera') && ['22023', '23514'].includes(response.error.code)) {
+      throw new Error('Supabase ha rechazado Carrera. Comprueba que hayas ejecutado 202609240002_daily_activity_intentions_running.sql completo: actualiza la restricción y la función de guardado. Después, reintenta la selección.')
+    }
+    if (response.error) intentionError(response.error)
+    if (!response.data) throw new Error('No se pudo confirmar la planificación guardada.')
+    return intentionTypes(response.data)
+  },
+}
 
 function optionalNumber(value: unknown) { return value === null || value === undefined ? undefined : Number(value) }
 function requireData<T>(data: T | null, error: { message: string } | null, message: string): T {

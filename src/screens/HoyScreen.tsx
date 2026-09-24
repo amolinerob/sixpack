@@ -11,6 +11,10 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { IconActionButton } from '../components/ActionIcon'
 import { MealSnapshotEditor } from '../components/MealSnapshotEditor'
 import { getGoalPercentage, getGoalStatus } from '../goalStatus'
+import { calculateDynamicDailyTargets } from '../dynamicDailyTargets'
+import { useDailyActivityIntentions } from '../useDailyActivityIntentions'
+import { DailyActivityPlan } from '../components/DailyActivityPlan'
+import { DynamicGoalInfo } from '../components/DynamicGoalInfo'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -72,6 +76,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   const [foods, setFoods] = useState<FoodItem[]>([])
   const [sharedMeals, setSharedMeals] = useState<Meal[]>([])
   const [selectedDate, setSelectedDate] = useState(todayIsoLocal())
+  const activityPlan = useDailyActivityIntentions(activeUser.id, selectedDate)
   const [entries, setEntries] = useState<FoodDiaryEntry[]>([])
   const [activities, setActivities] = useState<ActivityEntry[]>([])
   const [goals, setGoals] = useState<UserGoals>({})
@@ -150,15 +155,21 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     )
   }, [dateEntries])
 
+  const dynamicTargets = useMemo(() => calculateDynamicDailyTargets({
+    baseGoals: goals, intentions: activityPlan.ready ? activityPlan.values : [],
+    activities: activityPlan.ready ? activities : [], date: selectedDate,
+    measurements: activityPlan.ready ? measurements : [],
+  }), [goals, activityPlan.ready, activityPlan.values, activities, measurements, selectedDate])
+
   const dailyMacroComparisons = useMemo(() => {
     return [
-      { label: 'Proteínas', consumed: totals.protein, target: goals.targetProteinG, unit: 'g' },
-      { label: 'Hidratos', consumed: totals.carbs, target: goals.targetCarbsG, unit: 'g' },
-      { label: 'Grasas', consumed: totals.fat, target: goals.targetFatG, unit: 'g' },
+      { label: 'Proteínas', consumed: totals.protein, target: dynamicTargets.proteinG, unit: 'g' },
+      { label: 'Hidratos', consumed: totals.carbs, target: dynamicTargets.carbsG, unit: 'g' },
+      { label: 'Grasas', consumed: totals.fat, target: dynamicTargets.fatG, unit: 'g' },
     ].filter((comparison): comparison is DailyGoalComparison => (
-      comparison.target !== undefined && comparison.target > 0
+      comparison.target !== undefined && comparison.target >= 0
     ))
-  }, [goals, totals])
+  }, [dynamicTargets, totals])
 
   const dailyEnergyBalance = useMemo(() => {
     return calculateDailyEnergyBalance({
@@ -440,9 +451,13 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
           <ProgressLink onClick={onGoToUser}>Completa tus datos físicos en Usuario para calcular tu gasto diario.</ProgressLink>
         )}
 
-        {dailyMacroComparisons.length > 0 && (
+        <DailyActivityPlan plan={activityPlan} targets={dynamicTargets} loading={loading || Boolean(loadError)} />
+        {!activityPlan.loading && !loading && dailyMacroComparisons.length > 0 && (
           <div className="daily-goals-card__macros">
-            <span className="daily-goals-card__subtitle">Macros</span>
+            <div className="daily-goals-card__macro-heading">
+              <span className="daily-goals-card__subtitle">{!dynamicTargets.calculationValid ? 'Objetivos base' : selectedDate === todayIsoLocal() ? 'Objetivo de hoy' : 'Objetivo del día'}</span>
+              <DynamicGoalInfo />
+            </div>
             <div className="daily-goals-card__macro-rings">
               {dailyMacroComparisons.map((comparison) => <DailyGoalRing key={comparison.label} comparison={comparison} />)}
             </div>
@@ -783,7 +798,7 @@ function DailyGoalRing({ comparison }: { comparison: DailyGoalComparison }) {
   return (
     <div className="daily-goals-card__macro-ring">
       <span>{comparison.label}</span>
-      <GoalProgressRing label={comparison.label} percentage={percentage} status={getGoalStatus(percentage)} />
+      {comparison.target > 0 && <GoalProgressRing label={comparison.label} percentage={percentage} status={getGoalStatus(percentage)} />}
       <strong>{value.format(comparison.consumed)} / {value.format(comparison.target)} {comparison.unit}</strong>
     </div>
   )

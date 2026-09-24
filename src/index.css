@@ -63,6 +63,7 @@ body {
 .goal-info-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--text-soft); }
 .goal-info-button > span { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid currentColor; border-radius: 50%; font-size: 12px; font-weight: 700; }
 .goal-info-button:focus-visible { outline: 2px solid var(--green-strong); border-radius: 8px; }
+.daily-goals-card__macro-heading { display: flex; align-items: center; gap: 4px; }
 dialog.info-dialog { box-sizing: border-box; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; border: 0; color: var(--text); }
 .info-dialog::backdrop { background: rgb(0 0 0 / 40%); }
 .info-dialog__content { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
@@ -1522,6 +1523,19 @@ button {
   gap: 7px;
   margin-top: 8px;
 }
+
+.daily-activity-plan { margin-top: 16px; min-width: 0; }
+.daily-activity-plan__choices { display: grid; grid-template-columns: repeat(auto-fit, 52px); justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; }
+.daily-activity-plan__choices button { display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-control); background: var(--surface-card); color: var(--text); }
+.daily-activity-plan__choices button svg { display: block; width: 26px; height: 26px; }
+.daily-activity-plan__choices button[aria-pressed='true'] { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent-strong); }
+.daily-activity-plan__choices button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.daily-activity-plan__choices button:disabled { opacity: .55; cursor: default; }
+.daily-activity-plan__status, .daily-activity-plan__detail { display: block; margin-top: 8px; color: var(--text-soft); font-size: 12px; line-height: 1.5; }
+.daily-activity-plan__detail summary { cursor: pointer; }
+.daily-activity-plan__detail ul { margin: 6px 0 0; padding-left: 18px; }
+.daily-activity-plan__error { display: grid; justify-items: start; gap: 8px; margin-top: 8px; }
+.daily-activity-plan__error .error-text { overflow-wrap: anywhere; }
 
 .progress-history__header {
   display: flex;

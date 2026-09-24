@@ -21,7 +21,7 @@ const measurements = [{ date: '2026-09-12', weightKg: 83 }, { date: '2026-09-16'
 const activities = [{ date: '2026-09-16', calories: 420 }, { date: '2026-09-16', calories: 180 }, { date: '2026-09-17', calories: 999 }]
 const entries = [{ date: '2026-09-16', kcal: 2000, protein: 160, carbs: 200, fat: 60 }]
 const source = readFileSync(new URL('../src/screens/HoyScreen.tsx', import.meta.url), 'utf8')
-const snippet = source.slice(source.indexOf('  const dateEntries ='), source.indexOf('  const dailyMacroComparisons =')) + source.slice(source.indexOf('  const dailyEnergyBalance ='), source.indexOf('  const dailyGoals =')) + '\nresult = { ...dailyEnergyBalance, activityTotal };'
+const snippet = source.slice(source.indexOf('  const dateEntries ='), source.indexOf('  const dynamicTargets =')) + source.slice(source.indexOf('  const dailyEnergyBalance ='), source.indexOf('  const dailyGoals =')) + '\nresult = { ...dailyEnergyBalance, activityTotal };'
 function compare(testMeasurements, testActivities) {
   const context = { goals, measurements: testMeasurements, activities: testActivities, entries, selectedDate: '2026-09-16', useMemo: (fn) => fn(), ...energy }
   vm.runInNewContext(snippet, context)

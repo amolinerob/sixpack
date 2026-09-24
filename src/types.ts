@@ -20,6 +20,9 @@ export const ACTIVITY_TYPES = ['CrossFit', 'Bicicleta', 'Caminata', 'Carrera', '
 export type MealName = (typeof MEALS)[number]
 export type ActivityType = (typeof ACTIVITY_TYPES)[number]
 
+export type PlannedActivityType = Extract<ActivityType, 'CrossFit' | 'Caminata' | 'Carrera' | 'Bicicleta'>
+export type ActivityIntentionType = PlannedActivityType | 'Descanso'
+
 export type FoodDiaryEntry = {
   id: string
   entryType?: 'food' | 'meal'

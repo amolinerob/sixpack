@@ -233,6 +233,7 @@ const chain = {
   single: async () => response,
 }
 const cloud = loadModule('src/data/cloud/repositories.ts', {
+  '../../activityEstimation': {},
   '../../lib/supabase': { supabase: { from: (table) => { assert.equal(table, 'user_preferences'); return chain } } },
   '../../theme': theme,
   console: { error: (...args) => logs.push(args) },
