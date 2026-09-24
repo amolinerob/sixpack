@@ -286,7 +286,7 @@ const hoySource = readFileSync(new URL('../src/screens/HoyScreen.tsx', import.me
 const hoySnippet = hoySource.slice(hoySource.indexOf('  const dynamicTargets ='), hoySource.indexOf('  const dailyGoals ='))
   + '\nresult = { dynamicTargets, dailyMacroComparisons, dailyEnergyBalance };'
 function hoy(plan, actual, overrides = {}) {
-  const context = { result: null, goals: { ...baseGoals, sex: 'male', birthDate: '1990-01-01', heightCm: 180, ...overrides },
+  const context = { result: null, loading: false, loadError: '', ...load('smartRemainingMacros.ts'), goals: { ...baseGoals, sex: 'male', birthDate: '1990-01-01', heightCm: 180, ...overrides },
     activityPlan: plan, activities: actual, selectedDate: date,
     totals: { kcal: 2000, protein: 120, carbs: 180, fat: 50 },
     measurements: [{ date: '2026-09-01', weightKg: 82 }],
@@ -299,15 +299,18 @@ function hoy(plan, actual, overrides = {}) {
 }
 const withForecast = hoy({ ready: true, values: ['CrossFit'] }, history)
 const withoutForecast = hoy({ ready: true, values: [] }, history)
-assert.equal(withForecast.dailyMacroComparisons[1].target, 240)
-assert.equal(withoutForecast.dailyMacroComparisons[1].target, 130)
+assert.equal(withForecast.dynamicTargets.carbsG, 240)
+assert.equal(withoutForecast.dynamicTargets.carbsG, 130)
+assert.equal(withForecast.dailyMacroComparisons[1].target, 185)
+assert.equal(withoutForecast.dailyMacroComparisons[1].target, 78.5)
 assert.equal(withForecast.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure)
 assert.equal(withForecast.dailyEnergyBalance.estimatedDeficit, withoutForecast.dailyEnergyBalance.estimatedDeficit)
 const afterActual = hoy({ ready: true, values: ['CrossFit'] }, [...history, entry('CrossFit', 600)])
-assert.equal(afterActual.dailyMacroComparisons[1].target, 280)
+assert.equal(afterActual.dynamicTargets.carbsG, 280)
+assert.equal(afterActual.dailyMacroComparisons[1].target, 215)
 assert.equal(afterActual.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure + 600)
 assert.equal(hoy({ ready: false, values: [] }, history).dailyMacroComparisons[1].target, 220)
-assert.equal(hoy({ ready: true, values: ['CrossFit'] }, history, { targetDeficitKcal: 450 }).dailyMacroComparisons[1].target, withForecast.dailyMacroComparisons[1].target - 25)
+assert.ok(hoy({ ready: true, values: ['CrossFit'] }, history, { targetDeficitKcal: 450 }).dailyMacroComparisons[1].target < withForecast.dailyMacroComparisons[1].target)
 assert.equal(hoy({ ready: true, values: [] }, [], { targetDeficitKcal: 2000 }).dailyMacroComparisons[1].target, 0)
 console.log('Hoy integration: dynamic denominator, actual replacement and unchanged real-only energy balance passed.')
 

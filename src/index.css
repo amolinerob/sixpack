@@ -210,6 +210,8 @@ button {
   margin-top: 12px;
 }
 
+.dynamic-goal-info__deficit { padding: 10px 12px; border-radius: var(--radius-control); background: var(--accent-soft); color: var(--accent-strong); }
+
 .daily-goals-card__macros {
   margin-top: 16px;
   padding-top: 14px;

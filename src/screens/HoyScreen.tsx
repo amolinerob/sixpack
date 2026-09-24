@@ -15,6 +15,7 @@ import { calculateDynamicDailyTargets } from '../dynamicDailyTargets'
 import { useDailyActivityIntentions } from '../useDailyActivityIntentions'
 import { DailyActivityPlan } from '../components/DailyActivityPlan'
 import { DynamicGoalInfo } from '../components/DynamicGoalInfo'
+import { calculateAdaptiveMacroTargets } from '../smartRemainingMacros'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -161,15 +162,20 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     measurements: activityPlan.ready ? measurements : [],
   }), [goals, activityPlan.ready, activityPlan.values, activities, measurements, selectedDate])
 
+  const adaptiveTargets = useMemo(() => !loading && !loadError && activityPlan.ready
+    ? calculateAdaptiveMacroTargets({ dynamicTargets, consumedCalories: totals.kcal,
+      consumedProtein: totals.protein, consumedCarbs: totals.carbs, consumedFat: totals.fat }) : undefined,
+  [loading, loadError, activityPlan.ready, dynamicTargets, totals])
+
   const dailyMacroComparisons = useMemo(() => {
     return [
       { label: 'Proteínas', consumed: totals.protein, target: dynamicTargets.proteinG, unit: 'g' },
-      { label: 'Hidratos', consumed: totals.carbs, target: dynamicTargets.carbsG, unit: 'g' },
-      { label: 'Grasas', consumed: totals.fat, target: dynamicTargets.fatG, unit: 'g' },
+      { label: 'Hidratos', consumed: totals.carbs, target: adaptiveTargets?.carbsTargetG ?? dynamicTargets.carbsG, unit: 'g' },
+      { label: 'Grasas', consumed: totals.fat, target: adaptiveTargets?.fatTargetG ?? dynamicTargets.fatG, unit: 'g' },
     ].filter((comparison): comparison is DailyGoalComparison => (
       comparison.target !== undefined && comparison.target >= 0
     ))
-  }, [dynamicTargets, totals])
+  }, [adaptiveTargets, dynamicTargets, totals])
 
   const dailyEnergyBalance = useMemo(() => {
     return calculateDailyEnergyBalance({
@@ -456,7 +462,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
           <div className="daily-goals-card__macros">
             <div className="daily-goals-card__macro-heading">
               <span className="daily-goals-card__subtitle">{!dynamicTargets.calculationValid ? 'Objetivos base' : selectedDate === todayIsoLocal() ? 'Objetivo de hoy' : 'Objetivo del día'}</span>
-              <DynamicGoalInfo />
+              <DynamicGoalInfo targetDeficitKcal={goals.targetDeficitKcal} />
             </div>
             <div className="daily-goals-card__macro-rings">
               {dailyMacroComparisons.map((comparison) => <DailyGoalRing key={comparison.label} comparison={comparison} />)}
@@ -798,7 +804,9 @@ function DailyGoalRing({ comparison }: { comparison: DailyGoalComparison }) {
   return (
     <div className="daily-goals-card__macro-ring">
       <span>{comparison.label}</span>
-      {comparison.target > 0 && <GoalProgressRing label={comparison.label} percentage={percentage} status={getGoalStatus(percentage)} />}
+      <GoalProgressRing label={comparison.label} percentage={comparison.target === 0 && comparison.consumed > 0 ? 100 : percentage}
+        percentageLabel={comparison.target === 0 ? comparison.consumed > 0 ? 'Exceso' : '—' : undefined}
+        status={comparison.target === 0 ? 'red' : getGoalStatus(percentage)} />
       <strong>{value.format(comparison.consumed)} / {value.format(comparison.target)} {comparison.unit}</strong>
     </div>
   )
