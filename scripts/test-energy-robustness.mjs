@@ -23,7 +23,7 @@ const entries = [{ date: '2026-09-16', kcal: 2000, protein: 160, carbs: 200, fat
 const source = readFileSync(new URL('../src/screens/HoyScreen.tsx', import.meta.url), 'utf8')
 const snippet = source.slice(source.indexOf('  const dateEntries ='), source.indexOf('  const dynamicTargets =')) + source.slice(source.indexOf('  const dailyEnergyBalance ='), source.indexOf('  const dailyGoals =')) + '\nresult = { ...dailyEnergyBalance, activityTotal };'
 function compare(testMeasurements, testActivities) {
-  const context = { goals, measurements: testMeasurements, activities: testActivities, entries, selectedDate: '2026-09-16', useMemo: (fn) => fn(), ...energy }
+  const context = { balanceToday: '2026-09-25', activityPlan: { ready: true }, dynamicTargets: { effectiveActivityKcal: 9999 }, goals, measurements: testMeasurements, activities: testActivities, entries, selectedDate: '2026-09-16', useMemo: (fn) => fn(), ...energy }
   vm.runInNewContext(snippet, context)
   const summary = weekly.createWeeklySummary({ goals, measurements: testMeasurements, activities: testActivities, entries, today: '2026-09-19', range: { start: '2026-09-14', end: '2026-09-20' } })
   const day = summary.days.find((item) => item.date === context.selectedDate)

@@ -21,7 +21,8 @@ export function DynamicGoalInfo({ targetDeficitKcal }: { targetDeficitKcal: numb
       <p>Si consumes más grasa de la prevista, quedan menos calorías para hidratos y su objetivo se reduce. Lo mismo ocurre a la inversa cuando corresponde.</p>
       <p>La actividad prevista permite calcular el objetivo desde el inicio del día. Al registrar la actividad real, esta sustituye a la estimación del mismo tipo para evitar contarla dos veces.</p>
       <p>Si se agotan las kcal, no es necesario seguir comiendo para completar los macros.</p>
-      <p><strong>Balance del día</strong> utiliza únicamente actividad realmente realizada.</p>
+      <p><strong>Balance del día:</strong> hoy y en fechas futuras, el gasto incluye la actividad prevista pendiente. Al registrar la actividad realizada, su valor real sustituye a la estimación del mismo tipo. El déficit mostrado es una proyección mientras haya actividad prevista pendiente.</p>
+      <p>En fechas pasadas, el Balance utiliza solo actividad real; las intenciones no realizadas no aumentan el gasto histórico.</p>
     </InfoDialog>}
   </>
 }

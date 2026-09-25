@@ -285,9 +285,9 @@ console.log('Intention lifecycle: loading, date/user races, persistence, save fa
 const hoySource = readFileSync(new URL('../src/screens/HoyScreen.tsx', import.meta.url), 'utf8')
 const hoySnippet = hoySource.slice(hoySource.indexOf('  const dynamicTargets ='), hoySource.indexOf('  const dailyGoals ='))
   + '\nresult = { dynamicTargets, dailyMacroComparisons, dailyEnergyBalance };'
-function hoy(plan, actual, overrides = {}) {
+function hoy(plan, actual, overrides = {}, today = date) {
   const context = { result: null, loading: false, loadError: '', ...load('smartRemainingMacros.ts'), goals: { ...baseGoals, sex: 'male', birthDate: '1990-01-01', heightCm: 180, ...overrides },
-    activityPlan: plan, activities: actual, selectedDate: date,
+    activityPlan: plan, activities: actual, selectedDate: date, todayIsoLocal: () => today,
     totals: { kcal: 2000, protein: 120, carbs: 180, fat: 50 },
     measurements: [{ date: '2026-09-01', weightKg: 82 }],
     activityTotal: energy.getActiveKcalForDate(actual, date),
@@ -303,8 +303,8 @@ assert.equal(withForecast.dynamicTargets.carbsG, 240)
 assert.equal(withoutForecast.dynamicTargets.carbsG, 130)
 assert.equal(withForecast.dailyMacroComparisons[1].target, 185)
 assert.equal(withoutForecast.dailyMacroComparisons[1].target, 78.5)
-assert.equal(withForecast.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure)
-assert.equal(withForecast.dailyEnergyBalance.estimatedDeficit, withoutForecast.dailyEnergyBalance.estimatedDeficit)
+assert.equal(withForecast.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure + 430)
+assert.equal(withForecast.dailyEnergyBalance.estimatedDeficit, withoutForecast.dailyEnergyBalance.estimatedDeficit + 430)
 const afterActual = hoy({ ready: true, values: ['CrossFit'] }, [...history, entry('CrossFit', 600)])
 assert.equal(afterActual.dynamicTargets.carbsG, 280)
 assert.equal(afterActual.dailyMacroComparisons[1].target, 215)
@@ -312,7 +312,39 @@ assert.equal(afterActual.dailyEnergyBalance.estimatedDailyExpenditure, withoutFo
 assert.equal(hoy({ ready: false, values: [] }, history).dailyMacroComparisons[1].target, 220)
 assert.ok(hoy({ ready: true, values: ['CrossFit'] }, history, { targetDeficitKcal: 450 }).dailyMacroComparisons[1].target < withForecast.dailyMacroComparisons[1].target)
 assert.equal(hoy({ ready: true, values: [] }, [], { targetDeficitKcal: 2000 }).dailyMacroComparisons[1].target, 0)
-console.log('Hoy integration: dynamic denominator, actual replacement and unchanged real-only energy balance passed.')
+// A–K: shared effective activity today/future; actual activity only in the past.
+for (const [intentions, actual, expected] of [
+  [[], [], 0], [[], [entry('Carrera', 350)], 350],
+  [['CrossFit'], history, 430],
+  [['CrossFit'], [...history, entry('CrossFit', 480)], 480],
+  [['CrossFit', 'Caminata'], history, 670],
+  [['CrossFit', 'Caminata'], [...history, entry('Caminata', 210)], 640],
+  [['CrossFit'], [...history, entry('Carrera', 350)], 780],
+  [['Descanso'], history, 0],
+  [['Descanso'], [...history, entry('Carrera', 350)], 350],
+]) {
+  const result = hoy({ ready: true, values: intentions }, actual)
+  assert.equal(result.dynamicTargets.effectiveActivityKcal, expected)
+  assert.equal(result.dailyEnergyBalance.estimatedDailyExpenditure, 2124 + expected)
+  assert.equal(result.dailyEnergyBalance.estimatedDailyExpenditure, result.dynamicTargets.estimatedExpenditureKcal)
+  assert.equal(result.dailyEnergyBalance.estimatedDeficit, 2124 + expected - 2000)
+}
+assert.equal(hoy({ ready: true, values: ['CrossFit'] }, history, {}, '2026-09-23').dailyEnergyBalance.estimatedDailyExpenditure, 2124)
+assert.equal(hoy({ ready: true, values: ['CrossFit'] }, [...history, entry('CrossFit', 470)], {}, '2026-09-23').dailyEnergyBalance.estimatedDailyExpenditure, 2594)
+assert.equal(hoy({ ready: true, values: ['CrossFit'] }, history, {}, '2026-09-21').dailyEnergyBalance.estimatedDailyExpenditure, 2554)
+assert.equal(hoy({ ready: false, values: ['CrossFit'] }, [...history, entry('Carrera', 350)]).dailyEnergyBalance.estimatedDailyExpenditure, 2474)
+// Exact example: base 2085, forecast 521, then real 470; stored intake 1347.
+const exampleHistory = [entry('CrossFit', 521, '2026-09-21')]
+const exampleGoals = { ...baseGoals, heightCm: 178, targetDeficitKcal: 400 }
+const exampleMeasurements = [{ date: '2026-09-01', weightKg: 80 }]
+for (const [actual, expectedExpenditure, expectedDeficit] of [[exampleHistory, 2606, 1259], [[...exampleHistory, entry('CrossFit', 470)], 2555, 1208]]) {
+  const targets = calculate({ baseGoals: exampleGoals, intentions: ['CrossFit'], activities: actual, measurements: exampleMeasurements, date })
+  const balance = energy.calculateDailyEnergyBalance({ goals: exampleGoals, measurements: exampleMeasurements, referenceDate: date, activityCalories: targets.effectiveActivityKcal, consumedCalories: 1347 })
+  assert.equal(balance.baseDailyExpenditure, 2085)
+  assert.equal(balance.estimatedDailyExpenditure, expectedExpenditure)
+  assert.equal(balance.estimatedDeficit, expectedDeficit)
+}
+console.log('Hoy integration: A–K, actual replacement, future projection, past real-only balance and exact 2085 + 521 example passed.')
 
 // Every icon preserves the canonical click value and accessible name.
 const iconModule = load('components/SixPackIcon.tsx', { 'react/jsx-runtime': jsx })

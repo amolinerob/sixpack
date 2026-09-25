@@ -23,12 +23,11 @@ export function DailyActivityPlan({ plan, targets, loading }: {
         aria-label={type} title={type}
         disabled={loading || !plan.ready || plan.saving} onClick={() => plan.toggle(type)}><SixPackIcon name={activityIcons[type]} /></button>)}
     </div>
-    <span className="daily-activity-plan__status" role="status">
+    {(loading || plan.loading || plan.saving || !plan.ready || !targets.calculationValid || targets.effectiveActivityKcal === undefined) && <span className="daily-activity-plan__status" role="status">
       {loading || plan.loading ? 'Cargando planificación…' : plan.saving ? 'Guardando planificación…'
         : !plan.ready ? 'Objetivos base hasta que pueda cargarse la planificación.'
-          : !targets.calculationValid || targets.effectiveActivityKcal === undefined ? 'Datos insuficientes para el objetivo dinámico. Se mantienen los objetivos base.'
-            : `Actividad efectiva: ${format(targets.effectiveActivityKcal)} kcal`}
-    </span>
+          : 'Datos insuficientes para el objetivo dinámico. Se mantienen los objetivos base.'}
+    </span>}
     {plan.ready && !loading && targets.activityBreakdown.length > 0 && <details className="daily-activity-plan__detail">
       <summary>Ver detalle</summary>
       <ul>{targets.activityBreakdown.map((item) => <li key={item.type}>{item.type}: {Number.isFinite(item.kcal) ? `${format(item.kcal)} kcal` : 'Dato inválido'} · {sourceLabels[item.source]}</li>)}</ul>

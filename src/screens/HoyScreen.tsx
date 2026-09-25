@@ -1,4 +1,6 @@
 import { DailyBalanceBars } from '../components/DailyBalanceBars'
+import { normalizeSearchText } from '../searchText'
+import { FoodMacroSummary } from '../components/FoodMacroSummary'
 import { parseDecimalFromSpanishInput } from '../numericInput'
 import { useEffect, useMemo, useState } from 'react'
 import { calculateDailyEnergyBalance, getActiveKcalForDate } from '../energy'
@@ -177,15 +179,17 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     ))
   }, [adaptiveTargets, dynamicTargets, totals])
 
+  const balanceToday = todayIsoLocal()
   const dailyEnergyBalance = useMemo(() => {
     return calculateDailyEnergyBalance({
       goals,
       measurements,
       referenceDate: selectedDate,
       consumedCalories: totals.kcal,
-      activityCalories: activityTotal,
+      activityCalories: selectedDate >= balanceToday && activityPlan.ready
+        ? dynamicTargets.effectiveActivityKcal ?? activityTotal : activityTotal,
     })
-  }, [activityTotal, goals, measurements, selectedDate, totals.kcal])
+  }, [activityTotal, goals, measurements, selectedDate, totals.kcal, balanceToday, activityPlan.ready, dynamicTargets.effectiveActivityKcal])
   const dailyGoals = goals
   const deficitProgress = useMemo(() => {
     const target = dailyGoals.targetDeficitKcal
@@ -422,7 +426,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
   }
 
   const visibleFoods = foods.filter((food) => {
-    return food.name.toLowerCase().includes(searchName.toLowerCase())
+    return normalizeSearchText(food.name).includes(normalizeSearchText(searchName))
   })
 
   return (
@@ -635,6 +639,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                   <button key={food.id} className={`food-modal__row ${food.id === selectedFood.id ? 'is-selected' : ''}`}
                     onClick={() => syncQuantityToSelectedFood(food.id)}>
                     <span className="food-modal__name">{food.name}</span>
+                    <FoodMacroSummary food={food} />
                     <span className="food-modal__brand">{food.brand}</span>
                     <span className="food-modal__serving">{food.servingHabitual}</span>
                   </button>
@@ -651,31 +656,10 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                   <span className="food-detail__serving">{selectedFood.servingHabitual}</span>
                 </div>
 
-                <div className="food-macro-table">
-                  <div className="food-macro-table__row food-macro-table__row--head">
-                    <span>{selectedFood.servingUnit === 'g' && selectedFood.servingGrams ? 'Ración habitual' : 'Ración'}</span>
-                    <span>{selectedFood.servingHabitual}</span>
-                  </div>
-                  <div className="food-macro-table__row">
-                    <span>Kcal / 100 g</span>
-                    <span>{selectedFood.kcal100g}</span>
-                  </div>
-                  <div className="food-macro-table__row">
-                    <span>Proteína / 100 g</span>
-                    <span>{selectedFood.protein100g} g</span>
-                  </div>
-                  <div className="food-macro-table__row">
-                    <span>Hidratos / 100 g</span>
-                    <span>{selectedFood.carbs100g} g</span>
-                  </div>
-                  <div className="food-macro-table__row">
-                    <span>Grasa / 100 g</span>
-                    <span>{selectedFood.fat100g} g</span>
-                  </div>
-                </div>
+                <FoodMacroSummary food={selectedFood} />
 
                 <div className="food-modal__input-area">
-                  <label className="food-modal__label">Cantidad consumida ({selectedFood.servingUnit === 'g' && selectedFood.servingGrams ? 'g' : selectedFood.servingUnit ?? 'unidad'})</label>
+                  <label className="food-modal__label">Cantidad consumida (<span style={{ textTransform: 'none' }}>{selectedFood.servingUnit === 'g' && selectedFood.servingGrams ? 'g' : selectedFood.servingUnit ?? 'unidad'}</span>)</label>
                   <input className="food-modal__quantity"
                     type="text"
                     inputMode="decimal"
@@ -808,6 +792,9 @@ function DailyGoalRing({ comparison }: { comparison: DailyGoalComparison }) {
         percentageLabel={comparison.target === 0 ? comparison.consumed > 0 ? 'Exceso' : '—' : undefined}
         status={comparison.target === 0 ? 'red' : getGoalStatus(percentage)} />
       <strong>{value.format(comparison.consumed)} / {value.format(comparison.target)} {comparison.unit}</strong>
+      <small className="daily-goals-card__macro-difference">
+        ({comparison.consumed > comparison.target ? '+' : ''}{value.format(Math.abs(comparison.target - comparison.consumed))} {comparison.unit})
+      </small>
     </div>
   )
 }

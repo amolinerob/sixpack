@@ -349,6 +349,16 @@ button {
   text-transform: uppercase;
 }
 
+.daily-goals-card__macro-difference {
+  margin-top: -4px;
+  color: var(--text-soft);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-transform: none;
+}
+
 .daily-goals-card__macro-ring > strong {
   max-width: 100%;
   color: var(--text);
@@ -713,6 +723,18 @@ button {
   color: var(--text);
   border-radius: var(--radius-control);
   margin-bottom: 8px;
+}
+
+.food-modal__row, .food-modal__detail { container-type: inline-size; min-width: 0; }
+.food-macro-summary {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  color: var(--text-soft);
+  font-size: clamp(8px, 3.5cqi, 11px);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .food-modal__row.is-selected {

@@ -7,6 +7,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { IconActionButton } from '../components/ActionIcon'
 import { parseDecimalFromSpanishInput } from '../numericInput'
 
+import { normalizeSearchText } from '../searchText'
+
 function normalizeFoodName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, ' ')
 }
@@ -47,7 +49,7 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
   }, [activeUser.id])
 
   const filteredFoods = useMemo(() => {
-    return foods.filter((food) => food.name.toLowerCase().includes(searchName.toLowerCase()))
+    return foods.filter((food) => normalizeSearchText(food.name).includes(normalizeSearchText(searchName)))
   }, [foods, searchName])
 
   const selectedFood = foods.find((food) => food.id === selectedFoodId) ?? filteredFoods[0] ?? foods[0]
