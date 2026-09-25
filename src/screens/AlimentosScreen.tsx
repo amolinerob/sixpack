@@ -1,3 +1,4 @@
+import { formatDisplayNumber } from '../displayNumber'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { FoodItem } from '../data/foods'
@@ -248,20 +249,20 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
 
                   <div className="food-macro-table">
                     <div className="food-macro-table__row">
-                      <span>Kcal</span>
-                      <span>{selectedFood.kcal100g} kcal</span>
+                      <span>kcal</span>
+                      <span>{formatDisplayNumber(selectedFood.kcal100g)} kcal</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Proteína</span>
-                      <span>{selectedFood.protein100g} g</span>
+                      <span>{formatDisplayNumber(selectedFood.protein100g)} g</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Hidratos</span>
-                      <span>{selectedFood.carbs100g} g</span>
+                      <span>{formatDisplayNumber(selectedFood.carbs100g)} g</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Grasas</span>
-                      <span>{selectedFood.fat100g} g</span>
+                      <span>{formatDisplayNumber(selectedFood.fat100g)} g</span>
                     </div>
                   </div>
 
@@ -293,7 +294,7 @@ export function AlimentosScreen({ activeUser, onUserClick }: { activeUser: User;
               <label className="food-modal__label">Ración habitual</label>
               <input className="food-modal__quantity" value={form.servingHabitual} onChange={(event) => setForm({ ...form, servingHabitual: event.target.value })} placeholder="Ración habitual" />
 
-              <label className="food-modal__label">Kcal / 100 g *</label>
+              <label className="food-modal__label">kcal / 100 g *</label>
               <input className="food-modal__quantity" type="text" inputMode="decimal" value={form.kcal100g} onChange={(event) => setForm({ ...form, kcal100g: event.target.value })} />
 
               <label className="food-modal__label">Proteínas / 100 g *</label>

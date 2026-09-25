@@ -1,3 +1,4 @@
+import { formatDisplayNumber } from '../displayNumber'
 import { DailyBalanceBars } from '../components/DailyBalanceBars'
 import { normalizeSearchText } from '../searchText'
 import { FoodMacroSummary } from '../components/FoodMacroSummary'
@@ -455,7 +456,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
               target={dailyGoals.targetDeficitKcal}
               status={deficitProgress?.status}
             />
-            {dailyGoals.targetDeficitKcal === undefined && <ProgressLink onClick={onGoToUser}>Configura un d?ficit objetivo en Usuario</ProgressLink>}
+            {dailyGoals.targetDeficitKcal === undefined && <ProgressLink onClick={onGoToUser}>Configura un déficit objetivo en Usuario</ProgressLink>}
           </>
         ) : (
           <ProgressLink onClick={onGoToUser}>Completa tus datos físicos en Usuario para calcular tu gasto diario.</ProgressLink>
@@ -554,7 +555,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
             <article className="activity-row" key={activity.id}>
               <div className="activity-row__main">
                 <span className="activity-row__type">{activity.type}</span>
-                <span className="activity-row__meta">{formatDuration(activity.durationMinutes)} · {activity.calories} kcal</span>
+                <span className="activity-row__meta">{formatDuration(activity.durationMinutes)} · {formatDisplayNumber(activity.calories)} kcal</span>
                 {activity.notes && <span className="activity-row__notes">{activity.notes}</span>}
               </div>
               <div className="row-actions">
@@ -679,20 +680,20 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                       <span style={{ textTransform: 'none' }}>{round(quantityGrams)} g</span>
                     </div>
                     <div className="food-macro-table__row">
-                      <span>Kcal</span>
-                      <span>{round((selectedFood.kcal100g / 100) * quantityGrams)} kcal</span>
+                      <span>kcal</span>
+                      <span>{formatDisplayNumber((selectedFood.kcal100g / 100) * quantityGrams)} kcal</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Proteína</span>
-                      <span>{round((selectedFood.protein100g / 100) * quantityGrams)} g</span>
+                      <span>{formatDisplayNumber((selectedFood.protein100g / 100) * quantityGrams)} g</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Hidratos</span>
-                      <span>{round((selectedFood.carbs100g / 100) * quantityGrams)} g</span>
+                      <span>{formatDisplayNumber((selectedFood.carbs100g / 100) * quantityGrams)} g</span>
                     </div>
                     <div className="food-macro-table__row">
                       <span>Grasa</span>
-                      <span>{round((selectedFood.fat100g / 100) * quantityGrams)} g</span>
+                      <span>{formatDisplayNumber((selectedFood.fat100g / 100) * quantityGrams)} g</span>
                     </div>
                   </div>
                 </div>
@@ -733,7 +734,7 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
                 </div>
                 <div className="food-macro-table">
                   <div className="food-macro-table__row food-macro-table__row--head"><span>Ingredientes</span><span>{selectedSharedMeal.ingredients.length}</span></div>
-                  <div className="food-macro-table__row"><span>Kcal</span><span>{createMealSnapshot(selectedSharedMeal, foods).kcal} kcal</span></div>
+                  <div className="food-macro-table__row"><span>kcal</span><span>{createMealSnapshot(selectedSharedMeal, foods).kcal} kcal</span></div>
                   <div className="food-macro-table__row"><span>Proteína</span><span>{createMealSnapshot(selectedSharedMeal, foods).protein} g</span></div>
                   <div className="food-macro-table__row"><span>Hidratos</span><span>{createMealSnapshot(selectedSharedMeal, foods).carbs} g</span></div>
                   <div className="food-macro-table__row"><span>Grasa</span><span>{createMealSnapshot(selectedSharedMeal, foods).fat} g</span></div>
@@ -814,7 +815,7 @@ function round(value: number) {
 }
 
 function formatMealMacro(value: number) {
-  return Number(value.toFixed(1)).toString()
+  return formatDisplayNumber(value)
 }
 
 function formatDisplayDate(dateKey: string) {

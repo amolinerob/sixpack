@@ -1,3 +1,4 @@
+import { formatDisplayNumber } from '../displayNumber'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { FoodItem } from '../data/foods'
@@ -36,7 +37,7 @@ function nutritionFor(ingredients: MealIngredient[], foods: FoodItem[]): MealNut
 }
 
 function round(value: number) {
-  return Math.round(value * 10) / 10
+  return formatDisplayNumber(value)
 }
 
 function ingredientSummary(ingredient: MealIngredient, foods: FoodItem[]) {
@@ -48,7 +49,7 @@ function MacroSummary({ nutrition }: { nutrition: MealNutrition }) {
   return <div className="meal-recipe-card__macros">
     <span>{round(nutrition.kcal)} kcal</span>
     <span>P {round(nutrition.protein)} g</span>
-    <span>H {round(nutrition.carbs)} g</span>
+    <span>HC {round(nutrition.carbs)} g</span>
     <span>G {round(nutrition.fat)} g</span>
   </div>
 }

@@ -37,8 +37,8 @@ export function ProgressChart({ points, trend, target, unit }: Props) {
       {trend.length >= 2 && <path className="progress-chart__trend-line" d={path(trend)} />}
       {points.map((point) => <circle className="progress-chart__point" cx={x(point.date)} cy={y(point.value)} r={chartLayout.pointRadius} key={`${point.date}-${point.value}`} />)}
       <text className="progress-chart__axis-label" x="0" y="13">{unit}</text>
-      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.max) + 4}>{domain.max.toFixed(1)}</text>
-      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.min) + 4}>{domain.min.toFixed(1)}</text>
+      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.max) + 4}>{new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(domain.max)}</text>
+      <text className="progress-chart__axis-label" x={inset.left - 7} textAnchor="end" y={y(domain.min) + 4}>{new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(domain.min)}</text>
       <text className="progress-chart__date-label" x={inset.left} y={height - 6}>{formatShortDate(firstDate)}</text>
       <text className="progress-chart__date-label" x={width - inset.right} y={height - 6} textAnchor="end">{formatShortDate(lastDate)}</text>
     </svg>

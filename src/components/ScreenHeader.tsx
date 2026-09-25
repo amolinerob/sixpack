@@ -10,7 +10,7 @@ type Props = {
 export function ScreenHeader({ title, user, onUserClick }: Props) {
   return (
     <header className="screen-header">
-      <h1 className="screen-header__title">{title}</h1>
+      <h1 className="screen-header__title">{title.charAt(0) + title.slice(1).toLocaleLowerCase('es-ES')}</h1>
       <button
         className="screen-header__user"
         onClick={onUserClick}

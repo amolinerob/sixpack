@@ -1,0 +1,104 @@
+/* Shared presentation roles. Loaded after the existing component layouts. */
+:root {
+  --font-size-page-title: 20px;
+  --font-size-section-title: 16px;
+  --font-size-subtitle: 14px;
+  --font-size-body: 14px;
+  --font-size-secondary: 12px;
+  --font-size-caption: 11px;
+  --font-size-input: 16px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-body: 1.5;
+  --line-height-heading: 1.25;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --touch-size: 44px;
+}
+
+body { font-size: var(--font-size-body); line-height: var(--line-height-body); }
+button, input, select, textarea { font-family: var(--font); }
+button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:is(button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+:is(button, input, select, textarea):disabled { cursor: default; opacity: .55; }
+
+.screen-header { min-height: var(--touch-size); gap: var(--space-3); }
+.screen-header__title { font-size: var(--font-size-page-title); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); letter-spacing: 0; }
+.screen-header__user { min-height: var(--touch-size); max-width: 50%; overflow-wrap: anywhere; font-weight: var(--font-weight-semibold); }
+
+:is(.daily-goals-card__title, .section-title__text, .progress-card__title, .goals-card__title, .progress-section-label, .meals-panel__title, .food-list-panel__title) {
+  font-size: var(--font-size-section-title); font-weight: var(--font-weight-semibold);
+  color: var(--text); line-height: var(--line-height-heading); letter-spacing: 0; text-transform: none;
+}
+:is(.daily-goals-card__subtitle, .goals-form__section-title, .weekly-card__title, .user-preferences__label, .meal-form__totals-title) {
+  font-size: var(--font-size-subtitle); font-weight: var(--font-weight-semibold);
+  color: var(--text); line-height: var(--line-height-heading); letter-spacing: 0; text-transform: none;
+}
+:is(.food-modal__title, .user-picker__title) { font-size: var(--font-size-section-title); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); letter-spacing: 0; }
+:is(.food-modal__top, .goals-card__top, .section-title, .meals-panel__header, .progress-history__header) { gap: var(--space-2); align-items: center; }
+.food-modal__top { margin-bottom: var(--space-3); }
+.food-modal__title { min-width: 0; overflow-wrap: anywhere; }
+:is(.food-modal__name, .food-row__name, .meal-recipe-card__name, .meal-row__label, .activity-row__name) { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); line-height: var(--line-height-heading); }
+
+:is(.daily-goals-card__empty, .activity-empty__text, .empty-state-block__text, .progress-card__empty, .goals-card__empty, .evolution-card__empty, .meal-form__empty, .food-modal__equivalence, .activity-row__meta, .food-modal__brand, .food-modal__serving, .food-detail__brand, .food-detail__serving, .user-preferences__status, .daily-activity-plan__status, .daily-activity-plan__detail) {
+  font-size: var(--font-size-secondary); font-weight: var(--font-weight-regular); line-height: var(--line-height-body); color: var(--text-soft); letter-spacing: 0; text-transform: none;
+}
+.error-text { font-size: var(--font-size-secondary); font-weight: var(--font-weight-regular); line-height: var(--line-height-body); }
+.food-modal .food-modal__label, .auth-card label {
+  font-size: var(--font-size-secondary); font-weight: var(--font-weight-semibold); line-height: var(--line-height-body); letter-spacing: 0; text-transform: none;
+}
+.food-macro-table__row, .food-macro-table__row--head { text-transform: none; letter-spacing: 0; }
+.food-macro-table__row--head { font-weight: var(--font-weight-semibold); }
+.food-modal :is(input:not([type='checkbox']):not([type='radio']), select, textarea), .auth-card input {
+  min-width: 0; max-width: 100%; min-height: var(--touch-size); font-size: var(--font-size-input);
+  font-weight: var(--font-weight-regular); border-radius: var(--radius-control); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text);
+}
+.search-box input, .food-search input { min-width: 0; font-size: var(--font-size-input); min-height: var(--touch-size); }
+:is(.primary-button, .secondary-button, .danger-button) {
+  min-height: var(--touch-size); padding: var(--space-2) var(--space-3); border-radius: var(--radius-control);
+  font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); line-height: var(--line-height-heading);
+}
+:is(.food-modal__close, .icon-button, .icon-action-button, .date-nav__chevron, .weekly-summary__navigation button) {
+  min-width: var(--touch-size); min-height: var(--touch-size); display: inline-grid; place-items: center; flex-shrink: 0;
+}
+.goal-info-button { flex-basis: var(--touch-size); min-width: var(--touch-size); }
+:is(.entry-kind-selector__button, .evolution-period-selector button, .goals-card__edit) { min-height: var(--touch-size); font-size: var(--font-size-secondary); font-weight: var(--font-weight-semibold); }
+.food-modal__confirm { gap: var(--space-2); }
+.food-modal-backdrop { padding: var(--space-4); }
+.food-modal { padding: var(--space-4); max-height: calc(100dvh - 32px); }
+:is(.info-dialog__content, .confirm-dialog__message) { font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.info-dialog__content p { margin: 0 0 var(--space-3); }
+.info-dialog__content p:last-child { margin-bottom: 0; }
+.info-dialog .food-modal__confirm { margin-top: var(--space-4); }
+.weekly-coach-report { gap: var(--space-2); }
+.weekly-coach-report textarea { font-size: var(--font-size-input); }
+.weekly-card__row { font-size: var(--font-size-secondary); line-height: var(--line-height-body); gap: var(--space-2); }
+.weekly-card__row strong { font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.daily-goals-card__macro-ring { font-weight: var(--font-weight-semibold); letter-spacing: 0; text-transform: none; }
+.daily-goals-card__macro-ring > strong { font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
+.daily-goals-card__macro-difference { font-size: 10px; }
+.goal-comparison__head { font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
+.goal-comparison__heading { flex-wrap: nowrap; }
+.food-panel { padding: var(--space-4); }
+.food-macro-summary { font-size: clamp(10px, 3.5cqi, 11px); }
+
+/* Preserve compact SVG axes and the existing semantic chart colours. */
+.screen-progreso { --chart-axis-size: 11px; --chart-legend-size: 11px; --chart-title-size: 14px; }
+.screen-progreso :is(.evolution-card__title, .weekly-macros > .weekly-card__title, .weekly-activity-chart > .weekly-card__title) { font-weight: var(--font-weight-semibold); letter-spacing: 0; text-transform: none; }
+
+@media (max-width: 350px) {
+  .app-main { padding-left: var(--space-3); padding-right: var(--space-3); }
+  .daily-activity-plan__choices { grid-template-columns: repeat(5, minmax(44px, 1fr)); gap: var(--space-1); }
+  .daily-activity-plan__choices button { width: 100%; }
+  .goal-comparison__head, .goal-comparison__row { gap: var(--space-1); }
+  .goal-comparison__head { font-size: 10px; }
+  .goal-comparison__heading .goal-info-button { flex-basis: 36px; min-width: 36px; }
+  .food-modal__confirm { flex-wrap: wrap; }
+  .food-modal__confirm button { flex: 1 1 auto; }
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ProgressChart } from '../components/ProgressChart'
 import { WeeklyMacrosChart } from '../components/WeeklyMacrosChart'
 import { WeeklyActivityChart } from '../components/WeeklyActivityChart'
+import { WeeklyCoachReport } from '../components/WeeklyCoachReport'
 import { getWeeklyActivitySeries } from '../weeklyActivitySeries'
 import { calculateMovingAverage, calculatePeriodChange, filterPointsByPeriod, getMeasurementPoints, type ProgressPeriod } from '../progressSeries'
 import { createWeeklySummary, getWeekRange, type WeekSummary } from '../weeklySummary'
@@ -261,6 +262,7 @@ export function ProgresoScreen({ activeUser, onUserClick }: { activeUser: User; 
         <WeeklyActivityChart key={weeklySummary.range.start} data={getWeeklyActivitySeries(weeklySummary)} />
         <WeeklyBodyCard summary={weeklySummary} />
         <WeeklyDays summary={weeklySummary} />
+        {!loading && !loadError && <WeeklyCoachReport key={`${activeUser.id}:${weeklySummary.range.start}`} summary={weeklySummary} goals={goals} entries={entries} activities={activities} measurements={measurements} />}
       </section>
 
       <section className="progress-history">
