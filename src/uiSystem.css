@@ -77,6 +77,11 @@ button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .info-dialog__content p:last-child { margin-bottom: 0; }
 .info-dialog .food-modal__confirm { margin-top: var(--space-4); }
 .weekly-coach-report { gap: var(--space-2); }
+.weekly-coach-report__generate { background: var(--accent-strong); color: #fff; border: none; }
+@media (hover: hover) {
+  .weekly-coach-report__generate:hover { background: color-mix(in srgb, var(--accent-strong) 90%, black); }
+}
+.weekly-coach-report__generate:active { background: color-mix(in srgb, var(--accent-strong) 80%, black); }
 .weekly-coach-report textarea { font-size: var(--font-size-input); }
 .weekly-card__row { font-size: var(--font-size-secondary); line-height: var(--line-height-body); gap: var(--space-2); }
 .weekly-card__row strong { font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }

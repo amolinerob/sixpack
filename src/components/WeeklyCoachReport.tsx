@@ -32,7 +32,7 @@ export function WeeklyCoachReport(props: Parameters<typeof buildWeeklyCoachRepor
   }
   return <div className="weekly-coach-report">
     <span className="weekly-card__title">Informe para coach</span>
-    <button type="button" className="secondary-button" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>{expanded ? 'Ocultar informe' : 'Generar informe'}</button>
+    <button type="button" className="primary-button weekly-coach-report__generate" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(!expanded)}>{expanded ? 'Ocultar informe' : 'Generar informe'}</button>
     {expanded && <>
       <textarea id={id} ref={field} readOnly value={report} aria-label="Informe semanal para coach" rows={12} />
       <button type="button" className="secondary-button" onClick={copy}>Copiar informe</button>
