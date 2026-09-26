@@ -34,7 +34,7 @@ export function calculateDynamicDailyTargets({ baseGoals, intentions, activities
   const targetDeficitKcal = validTarget(baseGoals.targetDeficitKcal)
   const baseCarbsG = validTarget(baseGoals.targetCarbsG)
 
-  // Forecast only. Hoy computes its actual energy balance separately using real activity.
+  // Shared effective activity includes pending plans and their actual replacements.
   const forecast = validDate && effectiveActivityKcal !== undefined ? calculateDailyEnergyBalance({
     goals: baseGoals, measurements, referenceDate: date, consumedCalories: 0, activityCalories: effectiveActivityKcal,
   }) : undefined
@@ -46,9 +46,10 @@ export function calculateDynamicDailyTargets({ baseGoals, intentions, activities
     ? targetCalories - proteinG * 4 - fatG * 9 : undefined
   const calculationValid = availableCarbCalories !== undefined && Number.isFinite(availableCarbCalories)
   const incompatibleTargets = calculationValid && availableCarbCalories < 0
-  const carbsG = calculationValid ? Math.round(Math.max(0, availableCarbCalories / 4) / 5) * 5 : baseCarbsG
+  const carbsExactG = calculationValid ? Math.max(0, availableCarbCalories / 4) : undefined
+  const carbsG = carbsExactG !== undefined ? Math.round(carbsExactG / 5) * 5 : baseCarbsG
   return {
-    proteinG, carbsG, fatG, baseCarbsG, effectiveActivityKcal, activityBreakdown,
+    proteinG, carbsG, carbsExactG, fatG, baseCarbsG, effectiveActivityKcal, activityBreakdown,
     estimatedExpenditureKcal, targetDeficitKcal, targetCalories, calculationValid, incompatibleTargets,
   }
 }

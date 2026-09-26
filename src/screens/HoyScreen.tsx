@@ -18,7 +18,6 @@ import { calculateDynamicDailyTargets } from '../dynamicDailyTargets'
 import { useDailyActivityIntentions } from '../useDailyActivityIntentions'
 import { DailyActivityPlan } from '../components/DailyActivityPlan'
 import { DynamicGoalInfo } from '../components/DynamicGoalInfo'
-import { calculateAdaptiveMacroTargets } from '../smartRemainingMacros'
 
 function todayIsoLocal(date = new Date()) {
   const year = date.getFullYear()
@@ -165,20 +164,15 @@ export function HoyScreen({ activeUser, onUserClick, onGoToUser }: { activeUser:
     measurements: activityPlan.ready ? measurements : [],
   }), [goals, activityPlan.ready, activityPlan.values, activities, measurements, selectedDate])
 
-  const adaptiveTargets = useMemo(() => !loading && !loadError && activityPlan.ready
-    ? calculateAdaptiveMacroTargets({ dynamicTargets, consumedCalories: totals.kcal,
-      consumedProtein: totals.protein, consumedCarbs: totals.carbs, consumedFat: totals.fat }) : undefined,
-  [loading, loadError, activityPlan.ready, dynamicTargets, totals])
-
   const dailyMacroComparisons = useMemo(() => {
     return [
       { label: 'Proteínas', consumed: totals.protein, target: dynamicTargets.proteinG, unit: 'g' },
-      { label: 'Hidratos', consumed: totals.carbs, target: adaptiveTargets?.carbsTargetG ?? dynamicTargets.carbsG, unit: 'g' },
-      { label: 'Grasas', consumed: totals.fat, target: adaptiveTargets?.fatTargetG ?? dynamicTargets.fatG, unit: 'g' },
+      { label: 'Hidratos', consumed: totals.carbs, target: dynamicTargets.carbsG, unit: 'g' },
+      { label: 'Grasas', consumed: totals.fat, target: dynamicTargets.fatG, unit: 'g' },
     ].filter((comparison): comparison is DailyGoalComparison => (
       comparison.target !== undefined && comparison.target >= 0
     ))
-  }, [adaptiveTargets, dynamicTargets, totals])
+  }, [dynamicTargets, totals])
 
   const balanceToday = todayIsoLocal()
   const dailyEnergyBalance = useMemo(() => {

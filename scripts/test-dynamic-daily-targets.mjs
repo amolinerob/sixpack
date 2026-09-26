@@ -285,10 +285,10 @@ console.log('Intention lifecycle: loading, date/user races, persistence, save fa
 const hoySource = readFileSync(new URL('../src/screens/HoyScreen.tsx', import.meta.url), 'utf8')
 const hoySnippet = hoySource.slice(hoySource.indexOf('  const dynamicTargets ='), hoySource.indexOf('  const dailyGoals ='))
   + '\nresult = { dynamicTargets, dailyMacroComparisons, dailyEnergyBalance };'
-function hoy(plan, actual, overrides = {}, today = date) {
-  const context = { result: null, loading: false, loadError: '', ...load('smartRemainingMacros.ts'), goals: { ...baseGoals, sex: 'male', birthDate: '1990-01-01', heightCm: 180, ...overrides },
+function hoy(plan, actual, overrides = {}, today = date, consumed = { kcal: 2000, protein: 120, carbs: 180, fat: 50 }) {
+  const context = { result: null, loading: false, loadError: '', goals: { ...baseGoals, sex: 'male', birthDate: '1990-01-01', heightCm: 180, ...overrides },
     activityPlan: plan, activities: actual, selectedDate: date, todayIsoLocal: () => today,
-    totals: { kcal: 2000, protein: 120, carbs: 180, fat: 50 },
+    totals: consumed,
     measurements: [{ date: '2026-09-01', weightKg: 82 }],
     activityTotal: energy.getActiveKcalForDate(actual, date),
     useMemo: (fn) => fn(), calculateDynamicDailyTargets: calculate, ...energy,
@@ -301,13 +301,13 @@ const withForecast = hoy({ ready: true, values: ['CrossFit'] }, history)
 const withoutForecast = hoy({ ready: true, values: [] }, history)
 assert.equal(withForecast.dynamicTargets.carbsG, 240)
 assert.equal(withoutForecast.dynamicTargets.carbsG, 130)
-assert.equal(withForecast.dailyMacroComparisons[1].target, 185)
-assert.equal(withoutForecast.dailyMacroComparisons[1].target, 78.5)
+assert.equal(withForecast.dailyMacroComparisons[1].target, 240)
+assert.equal(withoutForecast.dailyMacroComparisons[1].target, 130)
 assert.equal(withForecast.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure + 430)
 assert.equal(withForecast.dailyEnergyBalance.estimatedDeficit, withoutForecast.dailyEnergyBalance.estimatedDeficit + 430)
 const afterActual = hoy({ ready: true, values: ['CrossFit'] }, [...history, entry('CrossFit', 600)])
 assert.equal(afterActual.dynamicTargets.carbsG, 280)
-assert.equal(afterActual.dailyMacroComparisons[1].target, 215)
+assert.equal(afterActual.dailyMacroComparisons[1].target, 280)
 assert.equal(afterActual.dailyEnergyBalance.estimatedDailyExpenditure, withoutForecast.dailyEnergyBalance.estimatedDailyExpenditure + 600)
 assert.equal(hoy({ ready: false, values: [] }, history).dailyMacroComparisons[1].target, 220)
 assert.ok(hoy({ ready: true, values: ['CrossFit'] }, history, { targetDeficitKcal: 450 }).dailyMacroComparisons[1].target < withForecast.dailyMacroComparisons[1].target)
@@ -393,3 +393,60 @@ render('a', '2026-09-23').toggle('Carrera')
 await flush()
 assert.equal(render('a', '2026-09-23').values.join(), 'Carrera')
 console.log('Activity icons: five accessible icon-only buttons, canonical clicks, Carrera save/reload and exclusive rest passed.')
+
+// Fixed denominators: consumption changes progress, never the daily budget.
+const fixedPlan = { ready: true, values: [] }
+const realActivity = [entry('Otra', 250)] // Existing base expenditure 2124 + 250 = 2374.
+const fixedGoals = { targetDeficitKcal: 400 }
+const fixed = hoy(fixedPlan, realActivity, fixedGoals)
+assert.equal(fixed.dynamicTargets.estimatedExpenditureKcal, 2374)
+assert.equal(fixed.dynamicTargets.targetCalories, 1974)
+assert.equal(fixed.dynamicTargets.carbsExactG, 182.25)
+assert.equal(fixed.dynamicTargets.carbsG, 180)
+const denominators = (result) => Array.from(result.dailyMacroComparisons, (item) => item.target)
+assert.deepEqual(denominators(fixed), [165, 180, 65])
+for (const consumed of [
+  { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  { kcal: 1000, protein: 0, carbs: 0, fat: 97.5 },
+  { kcal: 1000, protein: 0, carbs: 218.7, fat: 0 },
+  { kcal: 1000, protein: 167.6, carbs: 0, fat: 0 },
+  { kcal: 2422.7, protein: 167.6, carbs: 218.7, fat: 97.5 },
+  { kcal: 5000, protein: 300, carbs: 400, fat: 200 },
+]) {
+  const result = hoy(fixedPlan, realActivity, fixedGoals, date, consumed)
+  assert.deepEqual(denominators(result), [165, 180, 65])
+}
+const consumedExample = hoy(fixedPlan, realActivity, fixedGoals, date,
+  { kcal: 2422.7, protein: 167.6, carbs: 218.7, fat: 97.5 })
+assert.deepEqual(Array.from(consumedExample.dailyMacroComparisons, ({ consumed, target }) => Math.round(consumed / target * 100)), [102, 121, 150])
+assert.deepEqual(Array.from(consumedExample.dailyMacroComparisons, ({ consumed, target }) => Number((consumed - target).toFixed(1))), [2.6, 38.7, 32.5])
+for (const deficit of [300, 400, 500]) {
+  const result = hoy(fixedPlan, realActivity, { targetDeficitKcal: deficit }).dynamicTargets
+  assert.equal(result.carbsExactG, 182.25 + (400 - deficit) / 4)
+  assert.equal(result.carbsG, 180 + (400 - deficit) / 4)
+}
+for (const [actual, expenditure, exact, rounded] of [
+  [[], 2085, 110, 110],
+  [exampleHistory, 2606, 240.25, 240],
+  [[...exampleHistory, entry('CrossFit', 470)], 2555, 227.5, 230],
+]) {
+  const targets = calculate({ baseGoals: exampleGoals, intentions: actual.length ? ['CrossFit'] : [], activities: actual, measurements: exampleMeasurements, date })
+  assert.equal(targets.estimatedExpenditureKcal, expenditure)
+  assert.equal(targets.carbsExactG, exact)
+  assert.equal(targets.carbsG, rounded)
+  assert.equal(targets.proteinG, 165)
+  assert.equal(targets.fatG, 65)
+  assert.equal(targets.proteinG * 4 + targets.carbsExactG * 4 + targets.fatG * 9, targets.targetCalories)
+  assert.ok(Math.abs(targets.proteinG * 4 + targets.carbsG * 4 + targets.fatG * 9 - targets.targetCalories) <= 10)
+}
+assert.equal(fixed.dynamicTargets.proteinG * 4 + fixed.dynamicTargets.carbsExactG * 4 + fixed.dynamicTargets.fatG * 9, 1974)
+for (const value of [undefined, NaN, Infinity, -1, Number.MAX_VALUE]) {
+  for (const key of ['targetProteinG', 'targetFatG', 'targetDeficitKcal']) {
+    const targets = run([], [], { ...baseGoals, [key]: value })
+    for (const macro of [targets.proteinG, targets.fatG, targets.carbsG, targets.carbsExactG]) {
+      assert.ok(macro === undefined || (Number.isFinite(macro) && macro >= 0))
+    }
+  }
+}
+assert.equal(incompatible.carbsExactG, 0)
+console.log('Stable macro targets: exact 2374/400/165/65, consumption independence, excess percentages, planned/real CrossFit, deficit +/-100, energy consistency and finite nonnegative macros passed.')
